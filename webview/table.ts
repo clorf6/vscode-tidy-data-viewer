@@ -1378,8 +1378,12 @@ function setDetail(on: boolean): void {
 // ------------------------------------------------------------------------------------------------------------------
 // Boot
 
+/** Columns (as JSON) last given to the grid; reset whenever a new grid is built. */
+let gridColsJson = '';
+
 function boot(): void {
   isLog = file!.kind === 'log';
+  gridColsJson = '';
   document.body.dataset.kind = file!.kind;
   gridWrap.textContent = '';
   grid = new Grid(gridHost, isLog ? 'log' : 'table');
@@ -1431,8 +1435,14 @@ function applyMeta(m: Meta, reset: boolean): void {
   }
   cache.configure(Math.max(1, m.columns.length));
   if (!grid) return;
-  const colsChanged = !prev || JSON.stringify(prev.columns) !== JSON.stringify(m.columns);
-  if (colsChanged) syncColumns();
+  // Compare with what the grid actually has, not with the previous meta: a meta that arrived before `init` built the
+  // grid (indexing progress) used to count as "already applied", leaving the grid with zero columns — rows showed line
+  // numbers and level colours but no text.
+  const colsJson = JSON.stringify(m.columns);
+  if (colsJson !== gridColsJson) {
+    gridColsJson = colsJson;
+    syncColumns();
+  }
   grid.setCount(m.count);
   if (headerBtn) toggle(headerBtn, m.hasHeader);
   if (detail && file?.kind === 'parquet') {
@@ -1548,6 +1558,9 @@ function handleMessage(msg: ToView): void {
       return;
     }
     case 'meta':
+      // A re-created webview (its tab was hidden) can get the document's progress / follow updates before its `init`,
+      // which carries the current meta anyway.
+      if (!file) return;
       applyMeta(msg.meta, !!msg.reset);
       return;
     case 'rows':

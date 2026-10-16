@@ -1,5 +1,13 @@
 # 更新日志 / Changelog
 
+## 0.1.5
+
+- 修复：日志 / 表格有时打开后只有行号和级别颜色、没有文字（诊断信息里 `gridCols: []`）。标签页被隐藏后 webview 会重建，若文件仍在增长，新页面会先收到一条进度更新、再收到初始化消息，于是表格误以为列已经设置过，结果一列都没有。现在初始化之前的更新会被忽略，并且总是对照表格实际拥有的列来同步。
+
+---
+
+- Fix: logs/tables sometimes showed line numbers and level colours but no text (`gridCols: []`). When a re-created webview got a progress/follow update before its init, the grid never received its columns.
+
 ## 0.1.4
 
 - 修复：树视图中点击未选中行的折叠按钮需要点两次。原因是按下鼠标时列表获得焦点 / 选中行会重绘所有行，按钮在松开前被替换，Chromium 就不再触发点击；现在选中改在点击时进行，焦点样式只切换一个类名，不再重绘。
