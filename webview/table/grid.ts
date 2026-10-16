@@ -48,9 +48,11 @@ export interface GridHost {
   scrolled(): void;
 }
 
-/** Tallest scroll content we create; beyond it the scrollbar is scaled. Browsers stop painting sticky content reliably
- * somewhere above ~9M px (Firefox; Chromium tiles get flaky too), so stay well below. */
-const MAXPX = 6_000_000;
+/** Tallest scroll content we create; beyond it the scrollbar is scaled (wheel scrolling stays 1:1). The rendered rows sit
+ * in a sticky layer at scrollTop, so layer coordinates grow with this height. Chromium's GPU raster (VS Code) drops text
+ * glyphs once those coordinates reach the millions of device pixels on HiDPI screens — rows kept their backgrounds but
+ * lost their text near the end of a 400k-line log at 150 % scaling — so stay far below that, even at 3x DPR. */
+const MAXPX = 300_000;
 
 interface RowEl {
   el: HTMLDivElement;
