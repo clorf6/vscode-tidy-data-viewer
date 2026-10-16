@@ -1,5 +1,13 @@
 # 更新日志 / Changelog
 
+## 0.1.4
+
+- 修复：树视图中点击未选中行的折叠按钮需要点两次。原因是按下鼠标时列表获得焦点 / 选中行会重绘所有行，按钮在松开前被替换，Chromium 就不再触发点击；现在选中改在点击时进行，焦点样式只切换一个类名，不再重绘。
+
+---
+
+- Fix: collapsing an unselected tree row took two clicks (rows were re-rendered on mouse-down, so Chromium dropped the click).
+
 ## 0.1.3
 
 - 新增命令“复制表格诊断信息”，用于排查表格 / 日志显示空白的问题。

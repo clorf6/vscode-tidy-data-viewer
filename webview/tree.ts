@@ -233,7 +233,9 @@ function initList(): void {
 function setFocus(on: boolean): void {
   if (S.focused === on) return;
   S.focused = on;
-  vl.invalidate();
+  // A class on the list, not a re-render: rebuilding the rows on the focus that a mouse press causes replaced the
+  // chevron under the pointer before the click landed (see onMouseDown).
+  vl.el.classList.toggle('tv-focus', on);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -375,6 +377,9 @@ let pressed: HTMLElement | null = null;
 function onMouseDown(e: MouseEvent): void {
   if (e.button !== 0 && e.button !== 2) return;
   pressed = e.target as HTMLElement;
+  // Left button: select on click, not here. Re-rendering the rows between press and release replaces the chevron or
+  // button under the pointer, and Chromium then fires no click at all — collapsing an unselected row took two clicks.
+  if (e.button !== 2) return;
   const { r } = hit(e);
   if (r >= 0 && r !== S.sel) select(r, 'none');
 }

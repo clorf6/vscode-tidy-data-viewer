@@ -308,7 +308,7 @@ body {
 .row.sel {
   background: var(--dv-selected);
 }
-.row.sel.focus {
+.tv-focus .row.sel {
   background: var(--dv-selected-strong);
   outline: 1px solid var(--vscode-list-focusOutline, transparent);
   outline-offset: -1px;
@@ -319,7 +319,7 @@ body {
 .row.hit.sel {
   background: var(--dv-selected);
 }
-.row.hit.sel.focus {
+.tv-focus .row.hit.sel {
   background: var(--dv-selected-strong);
 }
 .row.cur {
@@ -631,7 +631,7 @@ body {
 .row.td.sel {
   background: var(--dv-selected);
 }
-.row.td.sel.focus {
+.tv-focus .row.td.sel {
   background: var(--dv-selected-strong);
 }
 .c {
@@ -708,7 +708,7 @@ body[data-mode='pretty'] .vl {
   background: var(--vscode-editor-lineHighlightBackground, var(--dv-selected));
   box-shadow: inset 0 0 0 1px var(--vscode-editor-lineHighlightBorder, transparent);
 }
-.row.pl.sel.focus {
+.tv-focus .row.pl.sel {
   background: var(--vscode-editor-lineHighlightBackground, var(--dv-selected));
 }
 .row.pl.cur {
@@ -821,7 +821,7 @@ body[data-mode='pretty'] .vl {
 .row.ini-sec.sel {
   background: var(--dv-selected);
 }
-.row.ini-sec.sel.focus {
+.tv-focus .row.ini-sec.sel {
   background: var(--dv-selected-strong);
 }
 .row.ini-kv {
@@ -1151,8 +1151,8 @@ body.vscode-high-contrast-light .row.sel {
   outline: 1px dotted var(--vscode-contrastActiveBorder, var(--dv-accent));
   outline-offset: -1px;
 }
-body.vscode-high-contrast .row.sel.focus,
-body.vscode-high-contrast-light .row.sel.focus {
+body.vscode-high-contrast .tv-focus .row.sel,
+body.vscode-high-contrast-light .tv-focus .row.sel {
   outline: 1px solid var(--vscode-contrastActiveBorder, var(--dv-accent));
 }
 body.vscode-high-contrast .row:hover,

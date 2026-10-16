@@ -220,7 +220,6 @@ function rowBase(el: HTMLElement, cls: string, r: number, ctx: Ctx, row?: Row): 
   el.removeAttribute('title');
   if (r === ctx.sel) {
     el.classList.add('sel');
-    if (ctx.focused) el.classList.add('focus');
   }
   if (row?.m && row.m & 7) {
     el.classList.add('hit');
