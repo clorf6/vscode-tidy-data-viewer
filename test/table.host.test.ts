@@ -126,7 +126,13 @@ test('CSV: typed stable sort, filters, stats, find over the whole file', async (
   for (let i = 0; i < 5000; i++) lines.push(`${i},${(i * 37) % 101},${['Boston', 'Paris', 'Tokyo'][i % 3]}`);
   const { doc, panel, last, rows } = await open('q.csv', lines.join('\n') + '\n');
   await panel.receive({ type: 'query', query: { filters: [], sort: { key: 1, dir: 'desc' } } });
+  // Background type analysis can finish right now and re-apply the sort (bumping the view version, which makes the
+  // webview fetch again); wait for the final sorted view rather than whatever the first reply raced against.
   let r = await rows(0, 64);
+  for (const t0 = Date.now(); r[0].c[1] !== '100' && Date.now() - t0 < 5000; ) {
+    await sleep(50);
+    r = await rows(0, 64);
+  }
   assert.equal(r[0].c[1], '100');
   // stable: equal scores keep document order
   const same = r.filter((x) => x.c[1] === '100').map((x) => Number(x.c[0]));
