@@ -1,0 +1,1007 @@
+/* Data Viewer — reading styles layered on VS Code's built-in Markdown preview (markdown.previewStyles).
+ *
+ * Loaded after the preview's own markdown.css/highlight.css. Every colour comes from the active theme's variables
+ * (light, dark and high contrast), and the user's markdown.preview.fontFamily / fontSize / lineHeight settings
+ * (--markdown-font-family / -size / -line-height on <html>) stay in charge of the text. Rules that compete with the
+ * stock stylesheet are written as `.vscode-body .markdown-body …` so they win regardless of load order.
+ */
+
+.vscode-body {
+  --dvm-fg: var(--vscode-editor-foreground);
+  --dvm-bg: var(--vscode-editor-background);
+  --dvm-muted: color-mix(in srgb, var(--dvm-fg) 66%, transparent);
+  --dvm-faint: color-mix(in srgb, var(--dvm-fg) 45%, transparent);
+  --dvm-line: color-mix(in srgb, var(--dvm-fg) 14%, transparent);
+  --dvm-line-soft: color-mix(in srgb, var(--dvm-fg) 8%, transparent);
+  --dvm-line-strong: color-mix(in srgb, var(--dvm-fg) 26%, transparent);
+  --dvm-tint: color-mix(in srgb, var(--dvm-fg) 3.5%, transparent);
+  --dvm-tint-2: color-mix(in srgb, var(--dvm-fg) 7%, transparent);
+  --dvm-zebra: color-mix(in srgb, var(--dvm-fg) 3.2%, transparent);
+  --dvm-code-bg: var(--vscode-textCodeBlock-background, var(--dvm-tint));
+  --dvm-link: var(--vscode-textLink-foreground);
+  --dvm-link-hover: var(--vscode-textLink-activeForeground, var(--dvm-link));
+  --dvm-accent: var(--vscode-button-background, var(--dvm-link));
+  --dvm-accent-fg: var(--vscode-button-foreground, #fff);
+  --dvm-ok: var(--vscode-testing-iconPassed, #3fb950);
+  --dvm-radius: 8px;
+  --dvm-mono: var(--vscode-editor-font-family, ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace);
+  --dvm-ui: var(--vscode-font-family, system-ui, -apple-system, 'Segoe UI', sans-serif);
+  --dvm-cjk: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', 'WenQuanYi Micro Hei';
+
+  /* GitHub's alert palette (dark) — overridden for light themes below */
+  --dvm-note: #4493f8;
+  --dvm-tip: #3fb950;
+  --dvm-important: #ab7df8;
+  --dvm-warning: #d29922;
+  --dvm-caution: #f85149;
+
+  --dvm-i-copy: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z'/%3E%3Cpath d='M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z'/%3E%3C/svg%3E");
+  --dvm-i-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z'/%3E%3C/svg%3E");
+  --dvm-i-link: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 1.998 1.998 0 0 0 2.83 0l2.5-2.5a2.002 2.002 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a1.998 1.998 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 1.998 1.998 0 0 0-2.83 0l-2.5 2.5a1.998 1.998 0 0 0 0 2.83Z'/%3E%3C/svg%3E");
+  --dvm-i-up: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.47 7.78a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0l4.25 4.25a.751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018L9 4.81v7.44a.75.75 0 0 1-1.5 0V4.81L4.53 7.78a.75.75 0 0 1-1.06 0Z'/%3E%3C/svg%3E");
+  --dvm-i-check-white: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='white' d='M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z'/%3E%3C/svg%3E");
+}
+
+.vscode-light,
+.vscode-high-contrast-light {
+  --dvm-tint: color-mix(in srgb, var(--dvm-fg) 3%, transparent);
+  --dvm-line: color-mix(in srgb, var(--dvm-fg) 13%, transparent);
+  --dvm-zebra: color-mix(in srgb, var(--dvm-fg) 2.6%, transparent);
+  --dvm-note: #0969da;
+  --dvm-tip: #1a7f37;
+  --dvm-important: #8250df;
+  --dvm-warning: #9a6700;
+  --dvm-caution: #d1242f;
+}
+
+.vscode-high-contrast {
+  --dvm-line: var(--vscode-contrastBorder, currentColor);
+  --dvm-line-soft: var(--vscode-contrastBorder, currentColor);
+  --dvm-line-strong: var(--vscode-contrastBorder, currentColor);
+  --dvm-tint: transparent;
+  --dvm-tint-2: transparent;
+  --dvm-zebra: transparent;
+  --dvm-muted: var(--dvm-fg);
+  --dvm-accent: var(--vscode-focusBorder, #f38518);
+}
+
+/* ---- page & text ---------------------------------------------------------------------------------------------- */
+
+html body.vscode-body {
+  /* the user's font first, then CJK faces so mixed Chinese/English text never falls back to a random font */
+  font-family: var(--markdown-font-family, -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif), var(--dvm-cjk), sans-serif;
+  font-kerning: normal;
+  text-autospace: normal; /* a hair of space between CJK and Latin/digits where supported */
+  -webkit-text-size-adjust: 100%;
+}
+
+.vscode-body .markdown-body {
+  max-width: 62em; /* ≈ 870px at 14px: a comfortable measure; wide tables may still use the whole window */
+  margin: 0 auto;
+  padding-bottom: 2.5em;
+}
+
+.vscode-body .markdown-body > :first-child {
+  margin-top: 0;
+}
+
+.vscode-body .markdown-body p {
+  margin: 0 0 1em;
+}
+
+.vscode-body .markdown-body strong {
+  font-weight: 650;
+}
+
+.vscode-body .markdown-body a {
+  color: var(--dvm-link);
+  text-decoration: none;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+
+.vscode-body .markdown-body a:hover {
+  color: var(--dvm-link-hover);
+  text-decoration: underline;
+}
+
+.vscode-body .markdown-body mark {
+  padding: 0 0.15em;
+  border-radius: 3px;
+  color: inherit;
+  background: color-mix(in srgb, var(--vscode-editor-findMatchHighlightBackground, #f2cc60) 70%, transparent);
+}
+
+/* ---- headings ------------------------------------------------------------------------------------------------- */
+
+.vscode-body .markdown-body :is(h1, h2, h3, h4, h5, h6) {
+  margin: 1.75em 0 0.7em;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.006em;
+  border: 0;
+  padding-bottom: 0;
+}
+
+.vscode-body .markdown-body h1 {
+  margin-top: 1.4em;
+  font-size: 2em;
+  font-weight: 700;
+  letter-spacing: -0.014em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--dvm-line);
+}
+
+.vscode-body .markdown-body h2 {
+  margin-top: 1.9em;
+  font-size: 1.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--dvm-line);
+}
+
+.vscode-body .markdown-body h3 {
+  font-size: 1.25em;
+}
+
+.vscode-body .markdown-body h4 {
+  font-size: 1.08em;
+}
+
+.vscode-body .markdown-body h5 {
+  font-size: 1em;
+}
+
+.vscode-body .markdown-body h6 {
+  font-size: 0.92em;
+  color: var(--dvm-muted);
+}
+
+.vscode-body .markdown-body > :is(h1, h2, h3, h4, h5, h6):first-child,
+.vscode-body .markdown-body > .dv-front-matter + :is(h1, h2, h3) {
+  margin-top: 0;
+}
+
+.vscode-body .markdown-body :is(h1, h2, h3, h4, h5, h6) code {
+  font-size: 0.85em;
+}
+
+/* hover link after the heading text (left of it is where the preview draws its active-line marker) */
+.vscode-body .markdown-body .dv-anchor {
+  display: inline-block;
+  width: 0.62em;
+  height: 0.62em;
+  margin-left: 0.4em;
+  vertical-align: 0.05em;
+  color: var(--dvm-faint);
+  background: currentColor;
+  -webkit-mask: var(--dvm-i-link) center / contain no-repeat;
+  mask: var(--dvm-i-link) center / contain no-repeat;
+  opacity: 0;
+  transition: opacity 0.12s;
+  text-decoration: none;
+}
+
+.vscode-body .markdown-body :is(h1, h2, h3, h4, h5, h6):hover .dv-anchor,
+.vscode-body .markdown-body .dv-anchor:focus-visible {
+  opacity: 1;
+}
+
+.vscode-body .markdown-body .dv-anchor:hover {
+  color: var(--dvm-link);
+}
+
+/* ---- lists ---------------------------------------------------------------------------------------------------- */
+
+.vscode-body .markdown-body :is(ul, ol) {
+  margin: 0 0 1em;
+  padding-left: 1.8em;
+}
+
+.vscode-body .markdown-body li {
+  margin: 0.28em 0;
+}
+
+.vscode-body .markdown-body li > :is(ul, ol) {
+  margin: 0.28em 0 0;
+}
+
+.vscode-body .markdown-body li > p {
+  margin: 0 0 0.5em;
+}
+
+.vscode-body .markdown-body li::marker {
+  color: var(--dvm-muted);
+}
+
+.vscode-body .markdown-body ol > li::marker {
+  font-variant-numeric: tabular-nums;
+}
+
+/* task lists */
+.vscode-body .markdown-body .task-list-item {
+  list-style: none;
+}
+
+.vscode-body .markdown-body .task-list-item-checkbox {
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  width: 1.05em;
+  height: 1.05em;
+  margin: 0 0.5em 0 -1.55em;
+  vertical-align: -0.16em;
+  border: 1.5px solid var(--dvm-line-strong);
+  border-radius: 0.3em;
+  background: transparent no-repeat center / 82%;
+  opacity: 1;
+  cursor: default;
+}
+
+.vscode-body .markdown-body .task-list-item-checkbox:checked {
+  border-color: var(--dvm-accent);
+  background-color: var(--dvm-accent);
+  background-image: var(--dvm-i-check-white);
+}
+
+.vscode-body .markdown-body .task-list-item-checked {
+  color: var(--dvm-muted);
+}
+
+.vscode-body .markdown-body .task-list-item-checked > :is(ul, ol) {
+  color: var(--dvm-fg);
+}
+
+/* ---- inline code, kbd ----------------------------------------------------------------------------------------- */
+
+.vscode-body .markdown-body :not(pre) > code {
+  padding: 0.14em 0.38em;
+  border-radius: 5px;
+  font-size: 0.875em;
+  color: var(--vscode-textPreformat-foreground, inherit);
+  background: var(--vscode-textPreformat-background, var(--dvm-tint-2));
+  overflow-wrap: break-word;
+}
+
+.vscode-body .markdown-body a > code {
+  color: inherit;
+}
+
+.vscode-body .markdown-body kbd {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 0.2em 0.42em;
+  font: 500 0.78em/1.2 var(--dvm-mono);
+  text-align: center;
+  vertical-align: 0.1em;
+  color: var(--vscode-keybindingLabel-foreground, inherit);
+  background: var(--vscode-keybindingLabel-background, var(--dvm-tint-2));
+  border: 1px solid var(--vscode-keybindingLabel-border, var(--dvm-line-strong));
+  border-bottom-color: var(--vscode-keybindingLabel-bottomBorder, var(--dvm-line-strong));
+  border-radius: 5px;
+  box-shadow: inset 0 -1px 0 var(--vscode-widget-shadow, rgba(0, 0, 0, 0.18));
+}
+
+/* ---- code blocks ---------------------------------------------------------------------------------------------- */
+
+.vscode-body .markdown-body pre {
+  margin: 0 0 1.1em;
+  padding: 0.9em 1.1em;
+  border: 1px solid var(--dvm-line);
+  border-radius: var(--dvm-radius);
+  background: var(--dvm-code-bg);
+}
+
+.vscode-body .markdown-body pre code {
+  font-size: 0.9em;
+  line-height: 1.6;
+  tab-size: 4;
+}
+
+.vscode-body .markdown-body .dv-code {
+  position: relative;
+  margin: 0 0 1.1em;
+  border: 1px solid var(--dvm-line);
+  border-radius: var(--dvm-radius);
+  background: var(--dvm-code-bg);
+  overflow: hidden;
+}
+
+.vscode-body .markdown-body .dv-code > pre {
+  margin: 0;
+  padding: 0.85em 1.15em 0.95em;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: auto;
+}
+
+.vscode-body .markdown-body .dv-code-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  min-height: 2.35em;
+  padding: 0 0.3em 0 1.15em;
+  border-bottom: 1px solid var(--dvm-line-soft);
+  background: var(--dvm-tint);
+  font: 500 0.78em/1 var(--dvm-ui);
+  color: var(--dvm-muted);
+  user-select: none;
+}
+
+.vscode-body .markdown-body .dv-code-lang {
+  letter-spacing: 0.02em;
+}
+
+.vscode-body .markdown-body .dv-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  height: 1.95em;
+  margin-left: auto;
+  padding: 0 0.6em;
+  border: 0;
+  border-radius: 5px;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.vscode-body .markdown-body .dv-copy::before {
+  content: '';
+  flex: none;
+  width: 1.12em;
+  height: 1.12em;
+  background: currentColor;
+  -webkit-mask: var(--dvm-i-copy) center / contain no-repeat;
+  mask: var(--dvm-i-copy) center / contain no-repeat;
+}
+
+.vscode-body .markdown-body .dv-copy:hover {
+  color: var(--dvm-fg);
+  background: var(--vscode-toolbar-hoverBackground, var(--dvm-tint-2));
+}
+
+.vscode-body .markdown-body .dv-copy:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.vscode-body .markdown-body .dv-copy.dv-copied {
+  color: var(--dvm-ok);
+}
+
+.vscode-body .markdown-body .dv-copy.dv-copied::before {
+  -webkit-mask-image: var(--dvm-i-check);
+  mask-image: var(--dvm-i-check);
+}
+
+/* syntax colours nudged towards VS Code's Default Dark+/Light+ (the stock highlight.css greys out function names and
+   paints JSON keys red in light themes); high-contrast themes keep the stock colours */
+.vscode-dark .markdown-body :is(.hljs-title, .hljs-title.function_) {
+  color: #dcdcaa;
+}
+
+.vscode-dark .markdown-body :is(.hljs-title.class_, .hljs-type) {
+  color: #4ec9b0;
+}
+
+.vscode-dark .markdown-body :is(.hljs-comment, .hljs-quote) {
+  color: #6a9955;
+}
+
+.vscode-dark .markdown-body :is(.hljs-params, .hljs-variable, .hljs-property) {
+  color: #9cdcfe;
+}
+
+.vscode-light .markdown-body :is(.hljs-title, .hljs-title.function_) {
+  color: #795e26;
+}
+
+.vscode-light .markdown-body :is(.hljs-title.class_, .hljs-type, .hljs-built_in) {
+  color: #267f99;
+}
+
+.vscode-light .markdown-body .hljs-number {
+  color: #098658;
+}
+
+.vscode-light .markdown-body :is(.hljs-attr, .hljs-params, .hljs-variable, .hljs-property) {
+  color: #0451a5;
+}
+
+.vscode-light .markdown-body .hljs-meta {
+  color: #795e26;
+}
+
+/* no language: no header, the copy button floats in the corner on hover */
+.vscode-body .markdown-body .dv-code-plain .dv-code-bar {
+  position: absolute;
+  top: 0.45em;
+  right: 0.45em;
+  z-index: 1;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.vscode-body .markdown-body .dv-code-plain:hover .dv-code-bar,
+.vscode-body .markdown-body .dv-code-plain .dv-code-bar:focus-within {
+  opacity: 1;
+}
+
+.vscode-body .markdown-body .dv-code-plain .dv-copy {
+  background: color-mix(in srgb, var(--dvm-bg) 82%, transparent);
+  box-shadow: 0 0 0 1px var(--dvm-line);
+}
+
+.vscode-body .markdown-body .dv-code-plain .dv-copy:not(.dv-copied) .dv-copy-text {
+  display: none;
+}
+
+/* ---- blockquotes & alerts ------------------------------------------------------------------------------------- */
+
+.vscode-body .markdown-body blockquote {
+  margin: 0 0 1em;
+  padding: 0.55em 1.1em;
+  border: 0;
+  border-left: 3px solid var(--vscode-textBlockQuote-border, var(--dvm-line-strong));
+  border-radius: 0 6px 6px 0;
+  background: color-mix(in srgb, var(--vscode-textBlockQuote-background, var(--dvm-tint)) 65%, transparent);
+  color: color-mix(in srgb, var(--dvm-fg) 86%, transparent);
+}
+
+.vscode-body .markdown-body :is(blockquote, .markdown-alert) > :last-child {
+  margin-bottom: 0;
+}
+
+.vscode-body .markdown-body .markdown-alert {
+  --dvm-alert: var(--dvm-note);
+  margin: 0 0 1em;
+  padding: 0.65em 1.1em 0.75em;
+  border-left: 3px solid var(--dvm-alert);
+  border-radius: 0 6px 6px 0;
+  background: color-mix(in srgb, var(--dvm-alert) 8%, transparent);
+}
+
+.vscode-body .markdown-body .markdown-alert-tip {
+  --dvm-alert: var(--dvm-tip);
+}
+
+.vscode-body .markdown-body .markdown-alert-important {
+  --dvm-alert: var(--dvm-important);
+}
+
+.vscode-body .markdown-body .markdown-alert-warning {
+  --dvm-alert: var(--dvm-warning);
+}
+
+.vscode-body .markdown-body .markdown-alert-caution {
+  --dvm-alert: var(--dvm-caution);
+}
+
+.vscode-body .markdown-body .markdown-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin: 0 0 0.4em;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--dvm-alert);
+}
+
+.vscode-body .markdown-body .markdown-alert-title .dv-icon {
+  flex: none;
+  width: 1.05em;
+  height: 1.05em;
+}
+
+.vscode-high-contrast .markdown-body :is(.markdown-alert, blockquote) {
+  border: 1px solid var(--dvm-line);
+  border-left: 3px solid var(--dvm-alert, var(--dvm-line));
+  background: transparent;
+}
+
+/* ---- tables --------------------------------------------------------------------------------------------------- */
+
+.vscode-body .markdown-body table {
+  margin: 0 0 1.25em;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.94em;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.vscode-body .markdown-body table :is(th, td) {
+  padding: 0.5em 0.95em;
+  border: 0;
+  border-bottom: 1px solid var(--dvm-line-soft);
+  vertical-align: top;
+}
+
+.vscode-body .markdown-body table :is(th, td) + :is(th, td) {
+  border-left: 1px solid var(--dvm-line-soft);
+}
+
+.vscode-body .markdown-body table th {
+  font-weight: 600;
+  text-align: left;
+  word-break: keep-all; /* 参数量 stays one word; headers still wrap at spaces */
+  border-bottom: 1px solid var(--dvm-line);
+  background-color: var(--dvm-bg);
+  background-image: linear-gradient(var(--dvm-tint-2), var(--dvm-tint-2));
+}
+
+.vscode-body .markdown-body table tbody tr:nth-child(even) > td {
+  background: var(--dvm-zebra);
+}
+
+.vscode-body .markdown-body table tbody tr:hover > td {
+  background: var(--vscode-list-hoverBackground, var(--dvm-tint-2));
+}
+
+.vscode-body .markdown-body table tbody tr:last-child > td {
+  border-bottom: 0;
+}
+
+.vscode-body .markdown-body table :is(th, td).dv-num {
+  text-align: right;
+}
+
+.vscode-body .markdown-body table td > :last-child {
+  margin-bottom: 0;
+}
+
+/* The wrapper scrolls sideways; it shrink-wraps the table so the rounded frame hugs it. */
+.vscode-body .markdown-body .dv-table-wrap {
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 0 1.25em;
+  overflow-x: auto;
+  border: 1px solid var(--dvm-line);
+  border-radius: var(--dvm-radius);
+}
+
+.vscode-body .markdown-body .dv-table-wrap > table {
+  margin: 0;
+}
+
+/* (preview script) fits: no scroll container, so the header row can stick to the top of the window */
+.vscode-body .markdown-body .dv-table-wrap.dv-fit {
+  overflow: visible;
+}
+
+.vscode-body .markdown-body .dv-table-wrap.dv-fit > table > thead th {
+  position: sticky;
+  top: var(--dvm-sticky-top, 0);
+  z-index: 1;
+}
+
+.vscode-body .markdown-body .dv-table-wrap > table > thead > tr:first-child > th:first-child {
+  border-top-left-radius: calc(var(--dvm-radius) - 1px);
+}
+
+.vscode-body .markdown-body .dv-table-wrap > table > thead > tr:first-child > th:last-child {
+  border-top-right-radius: calc(var(--dvm-radius) - 1px);
+}
+
+.vscode-body .markdown-body .dv-table-wrap > table > tbody > tr:last-child > td:first-child {
+  border-bottom-left-radius: calc(var(--dvm-radius) - 1px);
+}
+
+.vscode-body .markdown-body .dv-table-wrap > table > tbody > tr:last-child > td:last-child {
+  border-bottom-right-radius: calc(var(--dvm-radius) - 1px);
+}
+
+/* (preview script) wider than the text column: use the window's width, centred on the column */
+.vscode-body .markdown-body .dv-table-wrap.dv-wide {
+  position: relative;
+  left: 50%;
+  max-width: calc(100vw - 64px - var(--dvm-reserved, 0px));
+  transform: translateX(-50%);
+}
+
+/* (preview script) too wide for the window even so: keep short cells on one line, let only long prose wrap */
+.vscode-body .markdown-body .dv-table-wrap.dv-scroll > table :is(th, td) {
+  white-space: nowrap;
+}
+
+.vscode-body .markdown-body .dv-table-wrap.dv-scroll > table :is(th, td).dv-long {
+  min-width: 18em;
+  white-space: normal;
+}
+
+/* (preview script) measuring passes — never painted */
+.vscode-body .markdown-body .dv-table-wrap:is(.dv-measure, .dv-measure-min) {
+  position: static;
+  width: max-content;
+  max-width: none;
+  transform: none;
+  overflow: hidden;
+}
+
+.vscode-body .markdown-body .dv-table-wrap.dv-measure-min {
+  width: min-content;
+}
+
+/* ---- images, rules, details, math ----------------------------------------------------------------------------- */
+
+.vscode-body .markdown-body img {
+  border-radius: 4px;
+}
+
+.vscode-body .markdown-body img:not(a img) {
+  cursor: zoom-in;
+}
+
+.vscode-body .markdown-body p.dv-figure {
+  margin: 1.4em 0;
+  text-align: center;
+}
+
+.vscode-body .markdown-body p.dv-figure img {
+  border-radius: 6px;
+}
+
+.vscode-body .markdown-body hr {
+  height: 0;
+  margin: 2.2em 0;
+  border: 0;
+  border-top: 1px solid var(--dvm-line);
+  background: none;
+}
+
+.vscode-body .markdown-body details {
+  margin: 0 0 1em;
+  padding: 0 1em;
+  border: 1px solid var(--dvm-line);
+  border-radius: var(--dvm-radius);
+}
+
+.vscode-body .markdown-body details > summary {
+  margin: 0 -1em;
+  padding: 0.55em 1em;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vscode-body .markdown-body details[open] > summary {
+  margin-bottom: 0.75em;
+  border-bottom: 1px solid var(--dvm-line-soft);
+}
+
+.vscode-body .markdown-body .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.3em 0;
+}
+
+/* ---- footnotes ------------------------------------------------------------------------------------------------ */
+
+.vscode-body .markdown-body sup.footnote-ref > a {
+  padding: 0 0.12em;
+  font-weight: 600;
+  font-size: 0.85em;
+  text-decoration: none;
+}
+
+.vscode-body .markdown-body sup.footnote-ref > a::before {
+  content: '[';
+  color: var(--dvm-faint);
+}
+
+.vscode-body .markdown-body sup.footnote-ref > a::after {
+  content: ']';
+  color: var(--dvm-faint);
+}
+
+.vscode-body .markdown-body section.footnotes {
+  margin-top: 3em;
+  padding-top: 1em;
+  border-top: 1px solid var(--dvm-line);
+  font-size: 0.88em;
+  color: var(--dvm-muted);
+}
+
+.vscode-body .markdown-body .dv-footnotes-title {
+  margin-bottom: 0.6em;
+  font: 600 0.92em/1.4 var(--dvm-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dvm-faint);
+}
+
+.vscode-body .markdown-body .footnotes-list {
+  padding-left: 1.6em;
+}
+
+.vscode-body .markdown-body .footnote-item p {
+  margin: 0 0 0.35em;
+}
+
+.vscode-body .markdown-body .footnote-item:target {
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--dvm-link) 10%, transparent);
+  outline: 4px solid color-mix(in srgb, var(--dvm-link) 10%, transparent);
+}
+
+.vscode-body .markdown-body .footnote-backref {
+  margin-left: 0.2em;
+  font-family: var(--dvm-ui);
+  text-decoration: none;
+}
+
+/* ---- table of contents ---------------------------------------------------------------------------------------- */
+
+.vscode-body .markdown-body .dv-toc {
+  box-sizing: border-box;
+  width: fit-content;
+  min-width: min(100%, 22em);
+  max-width: 100%;
+  margin: 0 0 1.75em;
+  padding: 0.85em 1.25em 0.95em;
+  border: 1px solid var(--dvm-line);
+  border-radius: var(--dvm-radius);
+  background: var(--dvm-tint);
+  font-size: 0.94em;
+  line-height: 1.5;
+}
+
+.vscode-body .markdown-body .dv-toc-title,
+.vscode-body .markdown-body .dv-fm-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font: 600 0.86em/1.4 var(--dvm-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dvm-muted);
+}
+
+.vscode-body .markdown-body .dv-toc-title {
+  margin-bottom: 0.55em;
+}
+
+.vscode-body .markdown-body :is(.dv-toc-title, .dv-fm-head) .dv-icon {
+  flex: none;
+  width: 1.15em;
+  height: 1.15em;
+  opacity: 0.85;
+}
+
+.vscode-body .markdown-body .dv-toc ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vscode-body .markdown-body .dv-toc li {
+  margin: 0.14em 0;
+}
+
+.vscode-body .markdown-body .dv-toc ul ul {
+  margin: 0.14em 0 0.3em 0.3em;
+  padding-left: 0.95em;
+  border-left: 1px solid var(--dvm-line);
+}
+
+.vscode-body .markdown-body .dv-toc a {
+  color: var(--dvm-fg);
+}
+
+.vscode-body .markdown-body .dv-toc ul ul a {
+  color: var(--dvm-muted);
+}
+
+.vscode-body .markdown-body .dv-toc a:hover {
+  color: var(--dvm-link);
+  text-decoration: none;
+}
+
+.vscode-body .markdown-body .dv-toc code {
+  font-size: 0.85em;
+}
+
+@media (min-width: 760px) {
+  .vscode-body .markdown-body .dv-toc-cols > ul {
+    columns: 2;
+    column-gap: 2.5em;
+  }
+
+  .vscode-body .markdown-body .dv-toc-cols > ul > li {
+    break-inside: avoid;
+  }
+}
+
+/* ---- front matter --------------------------------------------------------------------------------------------- */
+
+.vscode-body .markdown-body .dv-front-matter {
+  margin: 0 0 1.9em;
+  border: 1px solid var(--dvm-line);
+  border-radius: var(--dvm-radius);
+  background: var(--dvm-tint);
+  font-size: 0.9em;
+  line-height: 1.55;
+  overflow: hidden;
+}
+
+.vscode-body .markdown-body .dv-fm-head {
+  padding: 0.6em 1.15em;
+  border-bottom: 1px solid var(--dvm-line-soft);
+}
+
+.vscode-body .markdown-body .dv-front-matter dl {
+  display: grid;
+  grid-template-columns: minmax(5.5em, max-content) minmax(0, 1fr);
+  gap: 0.45em 1.6em;
+  margin: 0;
+  padding: 0.8em 1.15em 0.9em;
+}
+
+.vscode-body .markdown-body .dv-front-matter dt {
+  font-family: var(--dvm-mono);
+  font-size: 0.92em;
+  color: var(--dvm-muted);
+}
+
+.vscode-body .markdown-body .dv-front-matter dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.vscode-body .markdown-body .dv-chip {
+  display: inline-block;
+  margin: 0 0.35em 0.2em 0;
+  padding: 0 0.6em;
+  border: 1px solid color-mix(in srgb, var(--dvm-link) 30%, transparent);
+  border-radius: 999px;
+  font-size: 0.92em;
+  line-height: 1.6;
+  background: color-mix(in srgb, var(--dvm-link) 11%, transparent);
+}
+
+.vscode-body .markdown-body .dv-fm-code {
+  padding: 0;
+  white-space: pre-wrap;
+  background: none;
+  font-size: 0.9em;
+}
+
+.vscode-body .markdown-body .dv-fm-empty,
+.vscode-body .markdown-body .dv-fm-bool {
+  color: var(--dvm-muted);
+}
+
+.vscode-body .markdown-body .dv-fm-raw {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+@media (max-width: 520px) {
+  .vscode-body .markdown-body .dv-front-matter dl {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.1em;
+  }
+
+  .vscode-body .markdown-body .dv-front-matter dd + dt {
+    margin-top: 0.5em;
+  }
+}
+
+/* ---- preview-script UI: back to top, lightbox ----------------------------------------------------------------- */
+
+.vscode-body .dv-top {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--vscode-widget-border, var(--dvm-line-strong));
+  border-radius: 50%;
+  color: var(--dvm-muted);
+  background: var(--vscode-editorWidget-background, var(--dvm-bg));
+  box-shadow: 0 2px 10px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.22));
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity 0.2s, transform 0.2s;
+  cursor: pointer;
+}
+
+.vscode-body .dv-top::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  -webkit-mask: var(--dvm-i-up) center / contain no-repeat;
+  mask: var(--dvm-i-up) center / contain no-repeat;
+}
+
+.vscode-body .dv-top.dv-show {
+  opacity: 0.92;
+  pointer-events: auto;
+  transform: none;
+}
+
+.vscode-body .dv-top:hover {
+  color: var(--dvm-fg);
+  opacity: 1;
+}
+
+.vscode-body .dv-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9em;
+  padding: 3vh 3vw;
+  background: color-mix(in srgb, var(--dvm-bg) 90%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  cursor: zoom-out;
+}
+
+.vscode-body .dv-lightbox.dv-open {
+  opacity: 1;
+}
+
+.vscode-body .dv-lightbox img {
+  max-width: 92vw;
+  max-height: 86vh;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+  transform: scale(0.97);
+  transition: transform 0.18s ease;
+}
+
+.vscode-body .dv-lightbox.dv-open img {
+  transform: none;
+}
+
+.vscode-body .dv-lightbox-caption {
+  max-width: 80vw;
+  font-size: 0.9em;
+  text-align: center;
+  color: var(--dvm-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vscode-body :is(.dv-top, .dv-lightbox, .dv-lightbox img, .markdown-body .dv-anchor, .markdown-body .dv-code-bar) {
+    transition: none;
+  }
+}
+
+.vscode-reduce-motion :is(.dv-top, .dv-lightbox, .dv-lightbox img) {
+  transition: none;
+}
+
+/* ---- print ---------------------------------------------------------------------------------------------------- */
+
+@media print {
+  .vscode-body :is(.dv-top, .dv-lightbox),
+  .vscode-body .markdown-body :is(.dv-copy, .dv-anchor) {
+    display: none;
+  }
+
+  .vscode-body .markdown-body .dv-table-wrap {
+    overflow: visible;
+  }
+}

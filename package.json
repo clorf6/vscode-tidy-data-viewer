@@ -1,0 +1,434 @@
+{
+  "name": "tidy-data-viewer",
+  "displayName": "%displayName%",
+  "description": "%description%",
+  "version": "0.1.0",
+  "publisher": "clorf6",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Visualization",
+    "Data Science",
+    "Other"
+  ],
+  "keywords": [
+    "csv",
+    "tsv",
+    "json",
+    "jsonl",
+    "ndjson",
+    "yaml",
+    "toml",
+    "xml",
+    "ini",
+    "env",
+    "parquet",
+    "log",
+    "markdown",
+    "wysiwyg",
+    "table",
+    "viewer",
+    "editor",
+    "data"
+  ],
+  "main": "./dist/extension.js",
+  "extensionKind": [
+    "workspace"
+  ],
+  "l10n": "./l10n",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    },
+    "virtualWorkspaces": true
+  },
+  "activationEvents": [],
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "dataViewer.table",
+        "displayName": "%editor.table%",
+        "priority": "default",
+        "selector": [
+          {
+            "filenamePattern": "*.csv"
+          },
+          {
+            "filenamePattern": "*.tsv"
+          },
+          {
+            "filenamePattern": "*.tab"
+          },
+          {
+            "filenamePattern": "*.psv"
+          },
+          {
+            "filenamePattern": "*.jsonl"
+          },
+          {
+            "filenamePattern": "*.ndjson"
+          },
+          {
+            "filenamePattern": "*.log"
+          },
+          {
+            "filenamePattern": "nohup.out"
+          },
+          {
+            "filenamePattern": "slurm-*.out"
+          },
+          {
+            "filenamePattern": "*.parquet"
+          }
+        ]
+      },
+      {
+        "viewType": "dataViewer.tree",
+        "displayName": "%editor.tree%",
+        "priority": "default",
+        "selector": [
+          {
+            "filenamePattern": "*.json"
+          },
+          {
+            "filenamePattern": "*.geojson"
+          },
+          {
+            "filenamePattern": "*.yaml"
+          },
+          {
+            "filenamePattern": "*.yml"
+          },
+          {
+            "filenamePattern": "*.toml"
+          },
+          {
+            "filenamePattern": "*.ini"
+          },
+          {
+            "filenamePattern": "*.env"
+          },
+          {
+            "filenamePattern": ".env"
+          },
+          {
+            "filenamePattern": ".env.*"
+          },
+          {
+            "filenamePattern": "*.xml"
+          }
+        ]
+      },
+      {
+        "viewType": "dataViewer.markdown",
+        "displayName": "%editor.markdown%",
+        "priority": "default",
+        "selector": [
+          {
+            "filenamePattern": "*.md"
+          },
+          {
+            "filenamePattern": "*.markdown"
+          },
+          {
+            "filenamePattern": "*.mdown"
+          },
+          {
+            "filenamePattern": "*.mkd"
+          }
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "dataViewer.openAsText",
+        "title": "%command.openAsText%",
+        "category": "%category%",
+        "icon": "$(code)"
+      },
+      {
+        "command": "dataViewer.openInViewer",
+        "title": "%command.openInViewer%",
+        "category": "%category%",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "dataViewer.tree.format",
+        "title": "%command.tree.format%",
+        "category": "%category%"
+      },
+      {
+        "command": "dataViewer.tree.minify",
+        "title": "%command.tree.minify%",
+        "category": "%category%"
+      },
+      {
+        "command": "dataViewer.tree.sortKeys",
+        "title": "%command.tree.sortKeys%",
+        "category": "%category%"
+      },
+      {
+        "command": "dataViewer.table.find",
+        "title": "%command.table.find%",
+        "category": "%category%"
+      },
+      {
+        "command": "dataViewer.table.goToRow",
+        "title": "%command.table.goToRow%",
+        "category": "%category%"
+      },
+      {
+        "command": "dataViewer.table.exportAs",
+        "title": "%command.table.exportAs%",
+        "category": "%category%"
+      },
+      {
+        "command": "dataViewer.tree.find",
+        "title": "%command.tree.find%",
+        "category": "%category%"
+      },
+      {
+        "command": "dataViewer.markdown.editSource",
+        "title": "%command.markdown.editSource%",
+        "category": "%category%",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "dataViewer.markdown.showPreview",
+        "title": "%command.markdown.showPreview%",
+        "category": "%category%",
+        "icon": "$(open-preview)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "dataViewer.openInViewer",
+          "when": "!activeCustomEditorId && resourceFilename =~ /\\.(csv|tsv|tab|psv|jsonl|ndjson|log|json|geojson|ya?ml|toml|ini|env|xml)$|^\\.env(\\..*)?$|^(nohup|slurm-.*)\\.out$/",
+          "group": "navigation@90"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "dataViewer.openInViewer",
+          "when": "!explorerResourceIsFolder && resourceFilename =~ /\\.(csv|tsv|tab|psv|jsonl|ndjson|log|parquet|json|geojson|ya?ml|toml|ini|env|xml|md|markdown|mdown|mkd)$|^\\.env(\\..*)?$|^(nohup|slurm-.*)\\.out$/",
+          "group": "navigation@20"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "dataViewer.openAsText",
+          "when": "activeCustomEditorId == dataViewer.table || activeCustomEditorId == dataViewer.tree || activeCustomEditorId == dataViewer.markdown"
+        },
+        {
+          "command": "dataViewer.markdown.editSource",
+          "when": "activeCustomEditorId == dataViewer.markdown || editorLangId == markdown"
+        },
+        {
+          "command": "dataViewer.markdown.showPreview",
+          "when": "activeCustomEditorId == dataViewer.markdown || editorLangId == markdown"
+        },
+        {
+          "command": "dataViewer.tree.format",
+          "when": "activeCustomEditorId == dataViewer.tree"
+        },
+        {
+          "command": "dataViewer.tree.minify",
+          "when": "activeCustomEditorId == dataViewer.tree"
+        },
+        {
+          "command": "dataViewer.tree.sortKeys",
+          "when": "activeCustomEditorId == dataViewer.tree"
+        },
+        {
+          "command": "dataViewer.table.find",
+          "when": "activeCustomEditorId == dataViewer.table"
+        },
+        {
+          "command": "dataViewer.table.goToRow",
+          "when": "activeCustomEditorId == dataViewer.table"
+        },
+        {
+          "command": "dataViewer.table.exportAs",
+          "when": "activeCustomEditorId == dataViewer.table"
+        },
+        {
+          "command": "dataViewer.tree.find",
+          "when": "activeCustomEditorId == dataViewer.tree"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "dataViewer.openInViewer",
+          "when": "!activeCustomEditorId && resourceFilename =~ /\\.(csv|tsv|tab|psv|jsonl|ndjson|log|parquet|json|geojson|ya?ml|toml|ini|env|xml|md|markdown|mdown|mkd)$|^\\.env(\\..*)?$|^(nohup|slurm-.*)\\.out$/",
+          "group": "1_open@1"
+        },
+        {
+          "command": "dataViewer.openAsText",
+          "when": "activeCustomEditorId == dataViewer.table || activeCustomEditorId == dataViewer.tree || activeCustomEditorId == dataViewer.markdown",
+          "group": "1_open@1"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "dataViewer.table.find",
+        "key": "ctrl+f",
+        "mac": "cmd+f",
+        "when": "activeCustomEditorId == dataViewer.table"
+      },
+      {
+        "command": "dataViewer.table.goToRow",
+        "key": "ctrl+g",
+        "mac": "ctrl+g",
+        "when": "activeCustomEditorId == dataViewer.table"
+      },
+      {
+        "command": "dataViewer.tree.find",
+        "key": "ctrl+f",
+        "mac": "cmd+f",
+        "when": "activeCustomEditorId == dataViewer.tree"
+      }
+    ],
+    "markdown.markdownItPlugins": true,
+    "markdown.previewStyles": [
+      "./media/markdown.css"
+    ],
+    "markdown.previewScripts": [
+      "./dist/md-preview.js"
+    ],
+    "configuration": {
+      "title": "%config.title%",
+      "properties": {
+        "dataViewer.openAsTextPatterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/.vscode/**",
+            "**/.devcontainer/**",
+            "**/tsconfig*.json",
+            "**/jsconfig*.json",
+            "**/package.json",
+            "**/package-lock.json",
+            "**/*.code-workspace",
+            "**/.eslintrc*",
+            "**/.prettierrc*"
+          ],
+          "markdownDescription": "%config.openAsTextPatterns%",
+          "order": 1
+        },
+        "dataViewer.table.maxEditableMB": {
+          "type": "number",
+          "default": 64,
+          "minimum": 1,
+          "markdownDescription": "%config.table.maxEditableMB%",
+          "order": 10
+        },
+        "dataViewer.table.delimiter": {
+          "type": "string",
+          "enum": [
+            "auto",
+            ",",
+            "\t",
+            ";",
+            "|"
+          ],
+          "default": "auto",
+          "markdownDescription": "%config.table.delimiter%",
+          "order": 11
+        },
+        "dataViewer.table.wrapCells": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "%config.table.wrapCells%",
+          "order": 12
+        },
+        "dataViewer.table.rowHeight": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "normal",
+            "comfortable"
+          ],
+          "default": "normal",
+          "markdownDescription": "%config.table.rowHeight%",
+          "order": 13
+        },
+        "dataViewer.log.follow": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "%config.log.follow%",
+          "order": 20
+        },
+        "dataViewer.tree.indent": {
+          "type": "number",
+          "enum": [
+            2,
+            4
+          ],
+          "default": 2,
+          "markdownDescription": "%config.tree.indent%",
+          "order": 30
+        },
+        "dataViewer.tree.expandDepth": {
+          "type": "number",
+          "default": 2,
+          "minimum": 0,
+          "maximum": 10,
+          "markdownDescription": "%config.tree.expandDepth%",
+          "order": 31
+        },
+        "dataViewer.markdown.enhance": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "%config.markdown.enhance%",
+          "order": 40
+        },
+        "dataViewer.markdown.frontMatter": {
+          "type": "string",
+          "enum": [
+            "card",
+            "hide"
+          ],
+          "default": "card",
+          "markdownDescription": "%config.markdown.frontMatter%",
+          "order": 41
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch --dev",
+    "typecheck": "tsc -p .",
+    "test": "node esbuild.mjs && node --test out/*.test.js",
+    "package": "npm run typecheck && node esbuild.mjs && vsce package --no-dependencies --allow-missing-repository",
+    "check": "node esbuild.mjs && node scripts/check-manifest.mjs",
+    "publish:marketplace": "bash scripts/publish.sh"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "14.1.2",
+    "@types/node": "20.17.6",
+    "@types/vscode": "1.90.0",
+    "@vscode/vsce": "3.2.1",
+    "esbuild": "0.24.0",
+    "fast-xml-parser": "5.11.2",
+    "hyparquet": "1.31.4",
+    "hyparquet-compressors": "1.1.2",
+    "jsonc-parser": "3.3.1",
+    "markdown-it": "14.1.0",
+    "markdown-it-footnote": "4.0.0",
+    "smol-toml": "1.9.1",
+    "typescript": "5.6.3",
+    "yaml": "2.9.1"
+  },
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#0C6E78",
+    "theme": "dark"
+  }
+}

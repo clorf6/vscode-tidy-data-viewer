@@ -1,0 +1,451 @@
+/* Data Viewer design system — shared by the table and tree pages. Everything derives from VS Code theme tokens so it
+   matches any light, dark or high-contrast theme. */
+
+:root {
+  --dv-bg: var(--vscode-editor-background);
+  --dv-fg: var(--vscode-editor-foreground);
+  --dv-muted: var(--vscode-descriptionForeground);
+  --dv-faint: color-mix(in srgb, var(--dv-fg) 38%, transparent);
+  --dv-border: var(--vscode-editorWidget-border, var(--vscode-panel-border, rgba(128, 128, 128, 0.35)));
+  --dv-hairline: color-mix(in srgb, var(--dv-fg) 10%, transparent);
+  --dv-subtle: color-mix(in srgb, var(--dv-fg) 4%, var(--dv-bg));
+  --dv-raised: var(--vscode-editorWidget-background, var(--dv-subtle));
+  --dv-hover: var(--vscode-list-hoverBackground, color-mix(in srgb, var(--dv-fg) 7%, transparent));
+  --dv-selected: var(--vscode-list-inactiveSelectionBackground, color-mix(in srgb, var(--dv-accent) 18%, transparent));
+  --dv-selected-strong: var(--vscode-list-activeSelectionBackground, color-mix(in srgb, var(--dv-accent) 30%, transparent));
+  --dv-selected-fg: var(--vscode-list-activeSelectionForeground, var(--dv-fg));
+  --dv-accent: var(--vscode-focusBorder, #3794ff);
+  --dv-link: var(--vscode-textLink-foreground, var(--dv-accent));
+  --dv-warn: var(--vscode-editorWarning-foreground, #cca700);
+  --dv-error: var(--vscode-errorForeground, #f14c4c);
+  --dv-ok: var(--vscode-testing-iconPassed, #73c991);
+  --dv-match: var(--vscode-editor-findMatchHighlightBackground, rgba(234, 92, 0, 0.33));
+  --dv-match-current: var(--vscode-editor-findMatchBackground, rgba(234, 92, 0, 0.6));
+
+  /* value colours, from the debugger's expression tokens (every theme defines these) */
+  --dv-key: var(--vscode-debugTokenExpression-name, #9cdcfe);
+  --dv-string: var(--vscode-debugTokenExpression-string, #ce9178);
+  --dv-number: var(--vscode-debugTokenExpression-number, #b5cea8);
+  --dv-boolean: var(--vscode-debugTokenExpression-boolean, #4e94ce);
+  --dv-null: var(--vscode-debugTokenExpression-value, var(--dv-muted));
+  --dv-type: var(--vscode-symbolIcon-classForeground, #ee9d28);
+
+  --dv-font: var(--vscode-font-family, system-ui, sans-serif);
+  --dv-mono: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, Menlo, monospace);
+  --dv-mono-size: var(--vscode-editor-font-size, 13px);
+  --dv-size: var(--vscode-font-size, 13px);
+  --dv-radius: 6px;
+  --dv-radius-sm: 4px;
+  --dv-bar-h: 36px;
+  --dv-shadow: 0 6px 24px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.3));
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--dv-bg);
+  color: var(--dv-fg);
+  font-family: var(--dv-font);
+  font-size: var(--dv-size);
+  overflow: hidden;
+}
+
+#app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.dv-icon {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---------- toolbar ---------- */
+.dv-toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--dv-bar-h);
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--dv-hairline);
+  background: var(--dv-bg);
+  flex-wrap: wrap;
+}
+.dv-toolbar .dv-spacer {
+  flex: 1;
+}
+.dv-title {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dv-meta {
+  color: var(--dv-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.dv-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 2px;
+  background: var(--dv-hairline);
+}
+
+/* ---------- buttons ---------- */
+.dv-btn,
+.dv-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--dv-radius-sm);
+  background: transparent;
+  color: var(--dv-fg);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dv-iconbtn {
+  width: 26px;
+  padding: 0;
+  justify-content: center;
+  color: var(--dv-muted);
+}
+.dv-btn:hover,
+.dv-iconbtn:hover {
+  background: var(--vscode-toolbar-hoverBackground, var(--dv-hover));
+  color: var(--dv-fg);
+}
+.dv-btn[aria-pressed='true'],
+.dv-iconbtn[aria-pressed='true'] {
+  background: var(--vscode-inputOption-activeBackground, var(--dv-selected));
+  border-color: var(--vscode-inputOption-activeBorder, transparent);
+  color: var(--vscode-inputOption-activeForeground, var(--dv-fg));
+}
+.dv-btn.primary {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+.dv-btn.primary:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+.dv-btn.secondary {
+  background: var(--vscode-button-secondaryBackground, var(--dv-subtle));
+  color: var(--vscode-button-secondaryForeground, var(--dv-fg));
+}
+.dv-btn:disabled,
+.dv-iconbtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  background: transparent;
+}
+:focus-visible {
+  outline: 1px solid var(--dv-accent);
+  outline-offset: -1px;
+}
+
+/* ---------- segmented control ---------- */
+.dv-seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: var(--dv-radius);
+  background: var(--dv-subtle);
+  border: 1px solid var(--dv-hairline);
+}
+.dv-seg button {
+  height: 22px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--dv-radius-sm);
+  background: transparent;
+  color: var(--dv-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dv-seg button[aria-selected='true'] {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+/* ---------- inputs ---------- */
+.dv-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 8px;
+  min-width: 160px;
+  border: 1px solid var(--vscode-input-border, var(--dv-hairline));
+  border-radius: var(--dv-radius-sm);
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+}
+.dv-input:focus-within {
+  border-color: var(--dv-accent);
+}
+.dv-input input,
+input.dv-plain {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+}
+.dv-input .dv-icon {
+  color: var(--dv-muted);
+}
+.dv-count {
+  color: var(--dv-muted);
+  font-size: 11px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- chips & badges ---------- */
+.dv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 11px;
+  border: 1px solid var(--dv-hairline);
+  background: var(--dv-subtle);
+  color: var(--dv-fg);
+  font-size: 11px;
+  cursor: pointer;
+}
+.dv-chip[aria-pressed='true'] {
+  border-color: var(--dv-accent);
+  background: color-mix(in srgb, var(--dv-accent) 16%, transparent);
+}
+.dv-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  font-size: 10px;
+  line-height: 1;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.dv-tag {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  line-height: 15px;
+  font-family: var(--dv-mono);
+  color: var(--dv-muted);
+  background: var(--dv-subtle);
+  border: 1px solid var(--dv-hairline);
+}
+
+/* ---------- value colouring (shared by table cells and tree values) ---------- */
+.v-str {
+  color: var(--dv-string);
+}
+.v-num {
+  color: var(--dv-number);
+  font-variant-numeric: tabular-nums;
+}
+.v-bool {
+  color: var(--dv-boolean);
+}
+.v-null {
+  color: var(--dv-null);
+  font-style: italic;
+}
+.v-key {
+  color: var(--dv-key);
+}
+.v-muted {
+  color: var(--dv-muted);
+}
+mark.dv-hit {
+  background: var(--dv-match);
+  color: inherit;
+  border-radius: 2px;
+}
+mark.dv-hit.current {
+  background: var(--dv-match-current);
+}
+
+/* ---------- status bar (bottom) ---------- */
+.dv-status {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 24px;
+  padding: 0 10px;
+  border-top: 1px solid var(--dv-hairline);
+  color: var(--dv-muted);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.dv-status .dv-spacer {
+  flex: 1;
+}
+.dv-status .mono {
+  font-family: var(--dv-mono);
+  color: var(--dv-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- banners, empty states ---------- */
+.dv-banner {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--dv-hairline);
+  background: color-mix(in srgb, var(--dv-warn) 12%, var(--dv-bg));
+}
+.dv-banner.error {
+  background: color-mix(in srgb, var(--dv-error) 12%, var(--dv-bg));
+}
+.dv-banner .dv-icon {
+  color: var(--dv-warn);
+}
+.dv-banner.error .dv-icon {
+  color: var(--dv-error);
+}
+.dv-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--dv-muted);
+  padding: 24px;
+  text-align: center;
+}
+
+/* ---------- floating menu / popover ---------- */
+.dv-menu {
+  position: fixed;
+  z-index: 50;
+  min-width: 180px;
+  max-width: 360px;
+  padding: 4px;
+  border-radius: var(--dv-radius);
+  border: 1px solid var(--vscode-menu-border, var(--dv-border));
+  background: var(--vscode-menu-background, var(--dv-raised));
+  color: var(--vscode-menu-foreground, var(--dv-fg));
+  box-shadow: var(--dv-shadow);
+  font-size: 12px;
+}
+.dv-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 26px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--dv-radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.dv-menu button:hover,
+.dv-menu button:focus-visible {
+  background: var(--vscode-menu-selectionBackground, var(--dv-selected-strong));
+  color: var(--vscode-menu-selectionForeground, inherit);
+  outline: none;
+}
+.dv-menu .dv-menu-sep {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--vscode-menu-separatorBackground, var(--dv-hairline));
+}
+.dv-menu .dv-kbd {
+  margin-left: auto;
+  color: var(--dv-muted);
+  font-size: 11px;
+}
+.dv-pop {
+  position: fixed;
+  z-index: 40;
+  padding: 10px 12px;
+  border-radius: var(--dv-radius);
+  border: 1px solid var(--dv-border);
+  background: var(--dv-raised);
+  box-shadow: var(--dv-shadow);
+  font-size: 12px;
+  max-width: 420px;
+}
+
+/* ---------- spinner ---------- */
+.dv-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--dv-hairline);
+  border-top-color: var(--dv-accent);
+  animation: dv-spin 0.8s linear infinite;
+}
+@keyframes dv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dv-spinner {
+    animation-duration: 3s;
+  }
+}
+
+/* ---------- scrollbars like the editor's ---------- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-background);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbarSlider-hoverBackground);
+}
+::-webkit-scrollbar-thumb:active {
+  background: var(--vscode-scrollbarSlider-activeBackground);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* high contrast: borders instead of fills */
+body.vscode-high-contrast .dv-seg button[aria-selected='true'],
+body.vscode-high-contrast-light .dv-seg button[aria-selected='true'] {
+  outline: 1px solid var(--vscode-contrastActiveBorder, var(--dv-accent));
+}

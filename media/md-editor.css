@@ -1,0 +1,532 @@
+/* Data Viewer — Markdown editor chrome (custom editor dataViewer.markdown). The document itself is styled exactly like
+ * the built-in preview: VS Code's markdown.css + highlight.css, KaTeX, every markdown.previewStyles contribution and
+ * media/markdown.css are loaded before this file. */
+
+.vscode-body.dv-md-editor {
+  --dve-bar-h: 36px;
+  --dvm-sticky-top: var(--dve-bar-h);
+  --dve-outline-w: 260px;
+  --dve-i-outline: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M5.75 2.5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5Zm0 5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5Zm0 5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5ZM2 14a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm1-6a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM2 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z'/%3E%3C/svg%3E");
+  --dve-i-width: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.72 3.72a.75.75 0 0 1 1.06 1.06L2.56 7h10.88l-2.22-2.22a.75.75 0 0 1 1.06-1.06l3.5 3.5a.75.75 0 0 1 0 1.06l-3.5 3.5a.75.75 0 1 1-1.06-1.06l2.22-2.22H2.56l2.22 2.22a.75.75 0 1 1-1.06 1.06l-3.5-3.5a.75.75 0 0 1 0-1.06Z'/%3E%3C/svg%3E");
+  --dve-i-more: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3ZM14.5 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z'/%3E%3C/svg%3E");
+  --dve-i-preview: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 2c1.981 0 3.671.992 4.933 2.078 1.27 1.091 2.187 2.345 2.637 3.023a1.62 1.62 0 0 1 0 1.798c-.45.678-1.367 1.932-2.637 3.023C11.67 13.008 9.981 14 8 14c-1.981 0-3.671-.992-4.933-2.078C1.797 10.83.88 9.576.43 8.898a1.62 1.62 0 0 1 0-1.798c.45-.677 1.367-1.931 2.637-3.022C4.33 2.992 6.019 2 8 2ZM1.679 7.932a.12.12 0 0 0 0 .136c.411.622 1.241 1.75 2.366 2.717C5.176 11.758 6.527 12.5 8 12.5c1.473 0 2.825-.742 3.955-1.715 1.124-.967 1.954-2.096 2.366-2.717a.12.12 0 0 0 0-.136c-.412-.621-1.242-1.75-2.366-2.717C10.824 4.242 9.473 3.5 8 3.5c-1.473 0-2.825.742-3.955 1.715-1.124.967-1.954 2.096-2.366 2.717ZM8 10a2 2 0 1 1-.001-3.999A2 2 0 0 1 8 10Z'/%3E%3C/svg%3E");
+  --dve-i-text: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0 1 14.25 15h-9a.75.75 0 0 1 0-1.5h9a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 10 4.25V1.5H5.75a.25.25 0 0 0-.25.25v2.5a.75.75 0 0 1-1.5 0Zm1.72 4.97a.75.75 0 0 1 1.06 0l2 2a.75.75 0 0 1 0 1.06l-2 2a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.47-1.47-1.47-1.47a.75.75 0 0 1 0-1.06ZM3.28 7.78 1.81 9.25l1.47 1.47a.751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018l-2-2a.75.75 0 0 1 0-1.06l2-2a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Zm8.22-6.218V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z'/%3E%3C/svg%3E");
+  --dve-i-source: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m11.28 3.22 4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L13.94 8l-3.72-3.72a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215Zm-6.56 0a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L2.06 8l3.72 3.72a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L.47 8.53a.75.75 0 0 1 0-1.06Z'/%3E%3C/svg%3E");
+  --dve-i-edit: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z'/%3E%3C/svg%3E");
+  --dve-i-row: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M16 10.75v2.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25v-2.5C0 9.784.784 9 1.75 9h12.5c.966 0 1.75.784 1.75 1.75Zm0-8v2.5A1.75 1.75 0 0 1 14.25 7H1.75A1.75 1.75 0 0 1 0 5.25v-2.5C0 1.784.784 1 1.75 1h12.5C15.216 1 16 1.784 16 2.75Zm-1.75-.25H1.75a.25.25 0 0 0-.25.25v2.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25v-2.5a.25.25 0 0 0-.25-.25Zm0 8H1.75a.25.25 0 0 0-.25.25v2.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25v-2.5a.25.25 0 0 0-.25-.25Z'/%3E%3C/svg%3E");
+  --dve-i-col: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2.75 0h2.5C6.216 0 7 .784 7 1.75v12.5A1.75 1.75 0 0 1 5.25 16h-2.5A1.75 1.75 0 0 1 1 14.25V1.75C1 .784 1.784 0 2.75 0Zm8 0h2.5C14.216 0 15 .784 15 1.75v12.5A1.75 1.75 0 0 1 13.25 16h-2.5A1.75 1.75 0 0 1 9 14.25V1.75C9 .784 9.784 0 10.75 0ZM2.5 1.75v12.5c0 .138.112.25.25.25h2.5a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25Zm8 0v12.5c0 .138.112.25.25.25h2.5a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25Z'/%3E%3C/svg%3E");
+  --dve-i-doc: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z'/%3E%3C/svg%3E");
+}
+
+html,
+body.dv-md-editor {
+  overflow-anchor: none; /* we keep the reading position ourselves when a block re-renders */
+}
+
+html body.vscode-body.dv-md-editor {
+  padding-top: calc(var(--dve-bar-h) + 1.25em);
+}
+
+.dv-md-editor .markdown-body :is(h1, h2, h3, h4, h5, h6, .footnote-item, [id]) {
+  scroll-margin-top: calc(var(--dve-bar-h) + 14px);
+}
+
+.dv-md-editor.dv-full .markdown-body {
+  max-width: none;
+}
+
+.dv-md-editor .dv-hidden {
+  display: none !important;
+}
+
+/* ---- toolbar ------------------------------------------------------------------------------------------------- */
+
+.dv-md-editor .dv-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: var(--dve-bar-h);
+  padding: 0 10px;
+  box-sizing: border-box;
+  font: 12.5px/1 var(--dvm-ui);
+  color: var(--dvm-muted);
+  background: color-mix(in srgb, var(--dvm-bg) 86%, transparent);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  backdrop-filter: blur(10px) saturate(1.2);
+  border-bottom: 1px solid var(--dvm-line-soft);
+}
+
+.dv-md-editor .dv-bar-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  margin-left: 6px;
+  overflow: hidden;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: color-mix(in srgb, var(--dvm-fg) 88%, transparent);
+}
+
+.dv-md-editor .dv-bar-title::before {
+  content: '';
+  flex: none;
+  width: 14px;
+  height: 14px;
+  background: var(--dvm-faint);
+  -webkit-mask: var(--dve-i-doc) center / contain no-repeat;
+  mask: var(--dve-i-doc) center / contain no-repeat;
+}
+
+.dv-md-editor .dv-bar-spacer {
+  flex: 1;
+}
+
+.dv-md-editor .dv-btn {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 26px;
+  min-width: 26px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 5px;
+  font: 12px/1 var(--dvm-ui);
+  color: var(--dvm-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.dv-md-editor .dv-btn:hover {
+  color: var(--dvm-fg);
+  background: var(--vscode-toolbar-hoverBackground, var(--dvm-tint-2));
+}
+
+.dv-md-editor .dv-btn:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.dv-md-editor .dv-btn.dv-on {
+  color: var(--dvm-fg);
+  background: var(--vscode-toolbar-activeBackground, var(--dvm-tint-2));
+}
+
+.dv-md-editor .dv-btn-primary {
+  margin-left: 6px;
+  padding: 0 10px;
+  color: var(--vscode-button-foreground, #fff);
+  background: var(--vscode-button-background, var(--dvm-accent));
+}
+
+.dv-md-editor .dv-btn-primary:hover {
+  color: var(--vscode-button-foreground, #fff);
+  background: var(--vscode-button-hoverBackground, var(--vscode-button-background));
+}
+
+.dv-md-editor .dv-btn-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  -webkit-mask: var(--dve-icon) center / contain no-repeat;
+  mask: var(--dve-icon) center / contain no-repeat;
+}
+
+.dv-md-editor .dv-btn-primary .dv-btn-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.dv-md-editor .dv-i-outline { --dve-icon: var(--dve-i-outline); }
+.dv-md-editor .dv-i-width { --dve-icon: var(--dve-i-width); }
+.dv-md-editor .dv-i-preview { --dve-icon: var(--dve-i-preview); }
+.dv-md-editor .dv-i-more { --dve-icon: var(--dve-i-more); }
+
+.dv-md-editor .dv-more-menu {
+  position: fixed;
+  z-index: 60;
+  min-width: 180px;
+  padding: 4px;
+  border-radius: 6px;
+  border: 1px solid var(--vscode-menu-border, var(--vscode-widget-border, rgba(128, 128, 128, 0.35)));
+  background: var(--vscode-menu-background, var(--vscode-editorWidget-background));
+  color: var(--vscode-menu-foreground, var(--vscode-foreground));
+  box-shadow: 0 6px 24px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.3));
+}
+.dv-md-editor .dv-more-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.dv-md-editor .dv-more-item:hover,
+.dv-md-editor .dv-more-item:focus-visible {
+  background: var(--vscode-menu-selectionBackground, var(--vscode-list-activeSelectionBackground));
+  color: var(--vscode-menu-selectionForeground, inherit);
+  outline: none;
+}
+.dv-md-editor .dv-i-text { --dve-icon: var(--dve-i-text); }
+.dv-md-editor .dv-i-source { --dve-icon: var(--dve-i-source); }
+.dv-md-editor .dv-i-edit { --dve-icon: var(--dve-i-edit); }
+.dv-md-editor .dv-i-row { --dve-icon: var(--dve-i-row); }
+.dv-md-editor .dv-i-col { --dve-icon: var(--dve-i-col); }
+
+@media (max-width: 560px) {
+  .dv-md-editor .dv-btn-primary .dv-btn-label {
+    display: none;
+  }
+}
+
+/* ---- outline ------------------------------------------------------------------------------------------------- */
+
+.dv-md-editor .dv-outline {
+  position: fixed;
+  top: var(--dve-bar-h);
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  box-sizing: border-box;
+  width: var(--dve-outline-w);
+  padding: 14px 10px 24px;
+  overflow: auto;
+  font: 12.5px/1.45 var(--dvm-ui);
+  background: var(--vscode-sideBar-background, var(--vscode-editorWidget-background, var(--dvm-bg)));
+  border-right: 1px solid var(--dvm-line-soft);
+  transform: translateX(-102%);
+  visibility: hidden;
+  transition: transform 0.18s ease, visibility 0.18s;
+}
+
+.dv-md-editor.dv-outline-open .dv-outline {
+  transform: none;
+  visibility: visible;
+}
+
+.dv-md-editor .dv-outline-head {
+  margin: 0 8px 8px;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--dvm-faint);
+}
+
+.dv-md-editor .dv-outline-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dv-md-editor .dv-ol-item > a {
+  display: block;
+  margin: 1px 0;
+  padding: 3px 8px;
+  overflow: hidden;
+  border-radius: 5px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  color: color-mix(in srgb, var(--dvm-fg) 78%, transparent);
+}
+
+.dv-md-editor .dv-ol-item > a:hover {
+  color: var(--dvm-fg);
+  background: var(--vscode-list-hoverBackground, var(--dvm-tint-2));
+}
+
+.dv-md-editor .dv-ol-item.dv-active > a {
+  color: var(--dvm-link);
+  background: color-mix(in srgb, var(--dvm-link) 11%, transparent);
+  box-shadow: inset 2px 0 0 var(--dvm-link);
+}
+
+.dv-md-editor .dv-ol-l0 > a { font-weight: 600; }
+.dv-md-editor .dv-ol-l1 > a { padding-left: 20px; }
+.dv-md-editor .dv-ol-l2 > a { padding-left: 32px; font-size: 12px; }
+.dv-md-editor .dv-ol-l3 > a { padding-left: 44px; font-size: 12px; }
+.dv-md-editor .dv-ol-l4 > a,
+.dv-md-editor .dv-ol-l5 > a { padding-left: 56px; font-size: 12px; }
+
+.dv-md-editor .dv-outline-empty {
+  padding: 4px 8px;
+  color: var(--dvm-faint);
+}
+
+@media (min-width: 960px) {
+  html body.vscode-body.dv-md-editor.dv-outline-open {
+    --dvm-reserved: var(--dve-outline-w);
+    padding-left: calc(var(--dve-outline-w) + 26px);
+  }
+}
+
+@media (max-width: 959px) {
+  .dv-md-editor.dv-outline-open .dv-outline {
+    box-shadow: 6px 0 24px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.3));
+  }
+}
+
+/* ---- block editing ------------------------------------------------------------------------------------------- */
+
+/* the selected block (Enter edits it): a bar in the gutter, like the preview's active-line marker */
+.dv-md-editor .markdown-body .dv-selected:not(.dv-code, .dv-table-wrap, .dv-front-matter) {
+  position: relative;
+}
+
+.dv-md-editor .markdown-body .dv-selected:not(.dv-code, .dv-table-wrap, .dv-front-matter)::before {
+  content: '';
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: -14px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--vscode-focusBorder, var(--dvm-link));
+}
+
+.dv-md-editor .markdown-body li.dv-selected::before {
+  left: -2.6em !important;
+}
+
+.dv-md-editor .markdown-body :is(.dv-code, .dv-table-wrap, .dv-front-matter).dv-selected {
+  outline: 2px solid color-mix(in srgb, var(--vscode-focusBorder, var(--dvm-link)) 60%, transparent);
+  outline-offset: 2px;
+}
+
+.dv-md-editor .dv-handle {
+  position: absolute;
+  z-index: 30;
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0;
+  color: var(--dvm-faint);
+  background: var(--vscode-editorWidget-background, var(--dvm-bg));
+  box-shadow: 0 0 0 1px var(--dvm-line);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+
+.dv-md-editor .dv-handle .dv-btn-icon {
+  width: 13px;
+  height: 13px;
+}
+
+.dv-md-editor .dv-handle.dv-show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dv-md-editor .dv-handle:hover {
+  color: var(--dvm-link);
+}
+
+.dv-md-editor .dv-edit {
+  margin: 0 0 1em;
+  overflow: hidden;
+  border: 1px solid var(--vscode-focusBorder, var(--dvm-link));
+  border-radius: var(--dvm-radius);
+  background: var(--vscode-editor-background);
+  box-shadow: 0 6px 22px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.22));
+}
+
+.dv-md-editor li > .dv-edit,
+.dv-md-editor :is(ul, ol) > .dv-edit {
+  margin: 0.3em 0;
+}
+
+.dv-md-editor .dv-edit-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 12px;
+  font: 11.5px/1.4 var(--dvm-ui);
+  color: var(--dvm-faint);
+  background: var(--dvm-tint);
+  border-bottom: 1px solid var(--dvm-line-soft);
+}
+
+.dv-md-editor .dv-edit-range {
+  font-weight: 600;
+  color: var(--dvm-muted);
+}
+
+.dv-md-editor .dv-edit-note {
+  margin-left: auto;
+}
+
+.dv-md-editor .dv-edit-text {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 3.4em;
+  margin: 0;
+  padding: 10px 14px 12px;
+  overflow: hidden;
+  border: 0;
+  outline: 0;
+  resize: none;
+  font-family: var(--dvm-mono);
+  font-size: var(--vscode-editor-font-size, 13px);
+  line-height: 1.6;
+  tab-size: 4;
+  color: var(--vscode-editor-foreground);
+  background: transparent;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.dv-md-editor .dv-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--dvm-line-soft);
+}
+
+.dv-md-editor .dv-edit-actions .dv-btn {
+  height: 24px;
+  padding: 0 12px;
+  border: 1px solid var(--dvm-line);
+}
+
+.dv-md-editor .dv-edit-actions .dv-btn-primary {
+  border-color: transparent;
+}
+
+.dv-md-editor .dv-edit.dv-saving {
+  opacity: 0.75;
+}
+
+.dv-md-editor .dv-edit.dv-error {
+  border-color: var(--vscode-inputValidation-errorBorder, var(--vscode-errorForeground, #f14c4c));
+}
+
+.dv-md-editor .dv-edit.dv-error .dv-edit-note {
+  color: var(--vscode-errorForeground, #f14c4c);
+}
+
+.dv-md-editor .task-list-item-checkbox {
+  cursor: pointer;
+}
+
+.dv-md-editor .task-list-item-checkbox:hover {
+  border-color: var(--dvm-accent);
+}
+
+.dv-md-editor .dv-empty {
+  padding: 3em 1em;
+  border: 1px dashed var(--dvm-line-strong);
+  border-radius: var(--dvm-radius);
+  text-align: center;
+  color: var(--dvm-faint);
+  cursor: text;
+}
+
+.dv-md-editor .dv-flash {
+  animation: dve-flash 1.2s ease-out;
+}
+
+@keyframes dve-flash {
+  0%, 30% { background-color: color-mix(in srgb, var(--dvm-link) 18%, transparent); }
+  100% { background-color: transparent; }
+}
+
+/* ---- table cells --------------------------------------------------------------------------------------------- */
+
+.dv-md-editor .dv-cell-input {
+  position: absolute;
+  z-index: 35;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 0.85em;
+  border: 2px solid var(--vscode-focusBorder, var(--dvm-link));
+  border-radius: 4px;
+  outline: 0;
+  color: var(--vscode-input-foreground, var(--dvm-fg));
+  background: var(--vscode-input-background, var(--dvm-bg));
+  box-shadow: 0 4px 14px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.25));
+}
+
+.dv-md-editor .dv-table-tools {
+  position: absolute;
+  z-index: 30;
+  display: flex;
+  gap: 1px;
+  padding: 2px;
+  border-radius: 7px;
+  background: var(--vscode-editorWidget-background, var(--dvm-bg));
+  box-shadow: 0 0 0 1px var(--dvm-line), 0 3px 10px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.18));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+
+.dv-md-editor .dv-table-tools.dv-show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dv-md-editor .dv-table-tools .dv-btn {
+  height: 24px;
+  min-width: 26px;
+}
+
+.dv-md-editor .dv-table-tools :is(.dv-i-row, .dv-i-col)::after {
+  content: '+';
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  font: 700 10px/1 var(--dvm-ui);
+}
+
+/* ---- toast --------------------------------------------------------------------------------------------------- */
+
+.dv-md-editor .dv-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  z-index: 60;
+  max-width: min(560px, calc(100vw - 48px));
+  padding: 9px 14px;
+  border-radius: 6px;
+  font: 12.5px/1.45 var(--dvm-ui);
+  color: var(--vscode-notifications-foreground, var(--dvm-fg));
+  background: var(--vscode-notifications-background, var(--vscode-editorWidget-background, var(--dvm-bg)));
+  box-shadow: 0 0 0 1px var(--dvm-line), 0 8px 24px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.3));
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 8px);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.dv-md-editor .dv-toast.dv-show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dv-md-editor :is(.dv-outline, .dv-handle, .dv-table-tools, .dv-toast) {
+    transition: none;
+  }
+}
