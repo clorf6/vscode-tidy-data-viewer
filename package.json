@@ -2,7 +2,7 @@
   "name": "tidy-data-viewer",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "clorf6",
   "license": "MIT",
   "engines": {

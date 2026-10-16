@@ -259,6 +259,8 @@ export class Grid {
     const virtH = this.scaled ? MAXPX : total;
     this.sizer.style.height = this.headH + virtH + 'px';
     this.sizer.style.width = this.contentW() + 'px';
+    // explicit track width: cells live inside it, so its box must cover them (see .tg-track in table.css)
+    this.stage.style.setProperty('--tw', this.contentW() + 'px');
     const bh = this.bodyH();
     this.k = this.scaled ? Math.max(1, (total - bh) / Math.max(1, MAXPX - bh)) : 1;
   }

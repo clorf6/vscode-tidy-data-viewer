@@ -396,13 +396,16 @@
   background: var(--tg-head-bg);
   box-shadow: 0 1px 0 var(--tg-line);
 }
+/* Cells scroll horizontally by this shared offset. Deliberately NOT will-change: a GPU layer per row (zero-width, with
+   overflowing cells, under a sticky stage) is sometimes never re-rastered by Chromium's GPU compositor after its cells
+   change, so VS Code showed row backgrounds and line numbers but no cell text. One stage layer repaints reliably. */
 .tg-track {
   position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
+  width: var(--tw, 0px);
   transform: translateX(var(--sx, 0px));
-  will-change: transform;
 }
 .tg-h {
   position: absolute;
@@ -520,7 +523,6 @@
   top: 0;
   left: 0;
   right: 0;
-  will-change: transform;
 }
 .tg-row {
   --row-bg: var(--dv-bg);
