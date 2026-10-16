@@ -158,7 +158,8 @@ export type ToHost =
   | { type: 'follow'; on: boolean }
   | { type: 'findLevel'; from: number; dir: 1 | -1; mask: number; vv: number }
   | { type: 'findInvalid'; from: number; dir: 1 | -1; vv: number }
-  | { type: 'setting'; key: 'wrap' | 'density'; value: unknown };
+  | { type: 'setting'; key: 'wrap' | 'density'; value: unknown }
+  | { type: 'diag'; info: string };
 
 /** Host → webview */
 export type ToView =
@@ -173,6 +174,8 @@ export type ToView =
   | { type: 'stats'; stats: Stats }
   | { type: 'record'; row: number; vv: number; data: RowData | null }
   | { type: 'focusSearch' }
+  /** Ask the webview for a rendering diagnostics snapshot (reply: ToHost diag). */
+  | { type: 'diag' }
   | { type: 'goTo'; row: number }
   | { type: 'paste'; text: string }
   | { type: 'found'; row: number }

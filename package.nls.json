@@ -26,5 +26,6 @@
   "config.markdown.frontMatter": "How YAML front matter at the top of a Markdown file is shown in the preview: a compact properties card, or hidden like the stock preview.",
   "editor.markdown": "Data Viewer: Markdown",
   "command.markdown.editSource": "Edit Markdown Source",
-  "command.markdown.showPreview": "Open in Built-in Markdown Preview"
+  "command.markdown.showPreview": "Open in Built-in Markdown Preview",
+  "command.table.diagnostics": "Copy Table Diagnostics"
 }

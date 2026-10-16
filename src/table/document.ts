@@ -387,6 +387,12 @@ export class TableDocument implements vscode.CustomDocument {
       case 'copy':
         await vscode.env.clipboard.writeText(msg.text);
         return;
+      case 'diag': {
+        const host = { model: this.model?.constructor?.name, readOnly: this.readOnlyReason ?? false, loaded: this.loaded, vv: this.vv, viewCount: this.viewCount() };
+        await vscode.env.clipboard.writeText(JSON.stringify({ host, view: JSON.parse(msg.info) }, null, 1));
+        void vscode.window.showInformationMessage(l10n.t('Table diagnostics copied to the clipboard — please paste them to the developer.'));
+        return;
+      }
       case 'copyRange':
         await vscode.env.clipboard.writeText(await this.rangeText(msg.r0, msg.r1, msg.keys, msg.format, msg.header));
         return;

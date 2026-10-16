@@ -2,7 +2,7 @@
   "name": "tidy-data-viewer",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "clorf6",
   "license": "MIT",
   "engines": {
@@ -200,6 +200,11 @@
         "title": "%command.markdown.showPreview%",
         "category": "%category%",
         "icon": "$(open-preview)"
+      },
+      {
+        "command": "dataViewer.table.diagnostics",
+        "title": "%command.table.diagnostics%",
+        "category": "%category%"
       }
     ],
     "menus": {
@@ -257,6 +262,10 @@
         {
           "command": "dataViewer.tree.find",
           "when": "activeCustomEditorId == dataViewer.tree"
+        },
+        {
+          "command": "dataViewer.table.diagnostics",
+          "when": "activeCustomEditorId == dataViewer.table"
         }
       ],
       "editor/title/context": [

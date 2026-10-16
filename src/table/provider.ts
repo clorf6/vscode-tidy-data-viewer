@@ -153,6 +153,10 @@ export function registerTableEditor(ctx: vscode.ExtensionContext): TableEditorPr
       'dataViewer.table.exportAs',
       withDoc((d) => provider.exportAs(d)),
     ),
+    vscode.commands.registerCommand(
+      'dataViewer.table.diagnostics',
+      withDoc((d) => provider.post(d, { type: 'diag' })),
+    ),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (!e.affectsConfiguration('dataViewer.table') && !e.affectsConfiguration('dataViewer.log')) return;
       for (const d of provider.panels.keys()) d.sendInit();

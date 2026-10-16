@@ -1461,7 +1461,8 @@ function applyMeta(m: Meta, reset: boolean): void {
     if (isLog && followOn() && !saved) grid.stickToBottom();
     else {
       grid.setY(st.y);
-      grid.setX(st.x);
+      // logs are read from the left edge: never bring back an old horizontal offset that hides short lines
+      grid.setX(isLog ? 0 : st.x);
     }
   } else if (isLog && followOn() && grid.atBottom()) grid.stickToBottom();
   if (isLog) updateFollowButton();
@@ -1472,6 +1473,54 @@ function applyMeta(m: Meta, reset: boolean): void {
 setInterval(() => {
   if (grid && grid.missing > 0 && !document.hidden) grid.dataChanged();
 }, 500);
+
+// ---- diagnostics (command "Copy Table Diagnostics"): a snapshot of what is really on screen ----
+const recentErrors: string[] = [];
+window.addEventListener('error', (e) => recentErrors.push(String(e.message)).toString() && recentErrors.length > 8 && recentErrors.shift());
+function diagnostics(): string {
+  const rect = (el: Element | null) => {
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)];
+  };
+  const sc = document.querySelector<HTMLElement>('.tg-scroll');
+  const stage = document.querySelector<HTMLElement>('.tg-stage');
+  const scs = stage ? getComputedStyle(stage) : null;
+  const g = grid as unknown as Record<string, unknown> | undefined;
+  const pick = (o: Record<string, unknown> | undefined, keys: string[]) => (o ? Object.fromEntries(keys.map((k) => [k, o[k]])) : null);
+  const rows = [...document.querySelectorAll<HTMLElement>('.tg-row')]
+    .map((e) => ({ e, r: e.getBoundingClientRect() }))
+    .filter((x) => x.r.bottom > 0 && x.r.top < innerHeight)
+    .sort((a, b) => a.r.top - b.r.top)
+    .slice(0, 4)
+    .map(({ e, r }) => {
+      const c = e.querySelector<HTMLElement>('.tg-c');
+      const tr = e.querySelector('.tg-track');
+      const cs = c ? getComputedStyle(c) : null;
+      return {
+        cls: e.className,
+        top: Math.round(r.top),
+        gut: e.querySelector('.tg-gut')?.textContent,
+        cells: e.querySelectorAll('.tg-c').length,
+        cell: c && cs && { cls: c.className, text: (c.textContent || '').slice(0, 40), len: (c.textContent || '').length, rect: rect(c), color: cs.color, font: cs.fontFamily.slice(0, 80), size: cs.fontSize, vis: cs.visibility, op: cs.opacity, tf: cs.transform, inline: c.getAttribute('style') },
+        track: tr && { rect: rect(tr), tf: getComputedStyle(tr).transform, parent: tr.parentElement?.className },
+      };
+    });
+  return JSON.stringify({
+    ua: navigator.userAgent,
+    dpr: devicePixelRatio,
+    win: [innerWidth, innerHeight],
+    isLog,
+    meta: meta && { count: (meta as unknown as Record<string, unknown>).count, indexing: (meta as unknown as Record<string, unknown>).indexing },
+    grid: pick(g, ['y', 'scaled', 'k', 'viewW', 'viewH', 'rowH', 'headH', 'gutW', 'pinW', 'nPinned', 'count', 'missing', 'logW', 'charW', 'wrap', 'base', 'stickBottom']),
+    gridCols: g && Array.isArray(g.cols) ? (g.cols as { w: number }[]).slice(0, 4).map((c) => c.w) : null,
+    scroll: sc && { top: sc.scrollTop, left: sc.scrollLeft, sw: sc.scrollWidth, sh: sc.scrollHeight, cw: sc.clientWidth, ch: sc.clientHeight },
+    stage: stage && scs && { style: stage.getAttribute('style'), rect: rect(stage), sx: scs.getPropertyValue('--sx'), tw: scs.getPropertyValue('--tw'), contain: scs.contain, position: scs.position },
+    rowsEl: (() => { const re = document.querySelector<HTMLElement>('.tg-rows'); return re && { tf: getComputedStyle(re).transform, rect: rect(re) }; })(),
+    rows,
+    errors: recentErrors,
+  });
+}
 
 onMessage<ToView>((msg) => {
   try {
@@ -1541,6 +1590,9 @@ function handleMessage(msg: ToView): void {
     }
     case 'focusSearch':
       focusSearch();
+      return;
+    case 'diag':
+      post({ type: 'diag', info: diagnostics() });
       return;
     case 'goTo':
     case 'found':

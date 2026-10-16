@@ -26,5 +26,6 @@
   "config.markdown.frontMatter": "Markdown 预览中文件开头 YAML front matter 的显示方式：显示为属性卡片，或像内置预览一样隐藏。",
   "editor.markdown": "数据查看器：Markdown",
   "command.markdown.editSource": "编辑 Markdown 源码",
-  "command.markdown.showPreview": "在内置 Markdown 预览中打开"
+  "command.markdown.showPreview": "在内置 Markdown 预览中打开",
+  "command.table.diagnostics": "复制表格诊断信息"
 }

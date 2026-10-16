@@ -1,5 +1,14 @@
 # 更新日志 / Changelog
 
+## 0.1.3
+
+- 新增命令“复制表格诊断信息”，用于排查表格 / 日志显示空白的问题。
+- 日志重新打开时不再恢复横向滚动位置，避免短行被移出视野而看起来一片空白。
+
+---
+
+- New command "Copy Table Diagnostics"; logs no longer restore a horizontal scroll offset on reopen.
+
 ## 0.1.2
 
 - 修复：打开大日志 / 大 CSV 时偶尔一片空白——行背景色和行号都在，单元格文字却不显示。原因是每一行的文字都在一个单独的 GPU 图层里，VS Code（Chromium）的 GPU 合成有时不会重绘这些图层；现在改为整个表格只用一个图层，并限制了滚动区域高度（超长文件按比例映射滚动条，滚轮仍逐行滚动）。
