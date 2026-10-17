@@ -2,6 +2,7 @@
 // recycled DOM nodes are positioned inside a sticky layer, so the scroll range can be scaled down for lists with
 // millions of rows (browsers cap element heights at roughly 16–33 M px).
 import type { Row } from '../../src/tree/protocol';
+import { restoreSelection, saveSelection } from '../shared/selection';
 
 const MAX_PX = 6_000_000;
 const CACHE_MAX = 30_000;
@@ -203,8 +204,27 @@ export class VList {
     });
   }
 
+  /** Shown row element (and its index) that contains a node. */
+  rowOf(n: Node): [HTMLElement, number] | undefined {
+    let el: Node | null = n;
+    while (el && el.parentNode !== this.inner) el = el.parentNode;
+    if (!el) return undefined;
+    for (const [r, e] of this.shown) if (e === el) return [e, r];
+    return undefined;
+  }
+
+  /** Insert a row element so that DOM order follows row order (text selections run in DOM order). */
+  private place(el: HTMLElement, r: number): void {
+    let next: HTMLElement | null = null;
+    let nr = Infinity;
+    for (const [k, e] of this.shown) if (k > r && k < nr && e !== el && e.parentNode === this.inner) [nr, next] = [k, e];
+    this.inner.insertBefore(el, next);
+  }
+
   /** Synchronous repaint (used right after data arrives to avoid a blank frame). */
   paint(): void {
+    // Rows are rebuilt below (selection moved, data arrived…): remember the text selection by row and offset.
+    const keep = saveSelection(this.inner, (n) => this.rowOf(n));
     const px = this.toContent(this.el.scrollTop);
     const first = Math.max(0, Math.floor(px / this.rowH));
     const offset = px - first * this.rowH;
@@ -218,6 +238,12 @@ export class VList {
     const last = Math.min(this.total, first + count);
     for (const [r, el] of this.shown) {
       if (r < first || r >= last) {
+        // A row holding an end of the text selection stays (off-screen), so dragging a selection past the edge or
+        // scrolling while text is selected does not cut the selection short.
+        if (keep && (keep.anchor?.r === r || keep.focus?.r === r)) {
+          el.style.top = (r - first) * this.rowH + 'px';
+          continue;
+        }
         this.recycle(el);
         this.shown.delete(r);
       }
@@ -231,15 +257,29 @@ export class VList {
       if (!el) {
         el = this.pool.pop() ?? document.createElement('div');
         this.shown.set(r, el);
-        this.inner.append(el);
+        this.place(el, r);
       }
-      if (fresh || moved || this.dirty || el.dataset.v !== (row ? '1' : '0')) {
+      if (fresh || moved || this.dirty) {
         el.style.top = (r - first) * this.rowH + 'px';
         el.style.height = this.rowH + 'px';
+      }
+      // Only rebuild a row when its data or its decorations changed — not because the list scrolled — so text the
+      // user is selecting is left alone.
+      if (fresh || this.dirty || el.dataset.v !== (row ? '1' : '0')) {
         el.dataset.v = row ? '1' : '0';
         this.o.render(el, row, r);
       }
     }
+    if (keep)
+      restoreSelection(
+        keep,
+        (r) => this.shown.get(r),
+        () => {
+          const a = this.shown.get(first);
+          const b = this.shown.get(last - 1);
+          return a && b ? [first, a, last - 1, b] : undefined;
+        },
+      );
     this.dirty = false;
     this.o.onPaint?.();
     // fetch the visible window plus a margin on both sides

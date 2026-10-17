@@ -41,6 +41,8 @@ function webviewStrings() {
     top: l10n.t('Back to top'),
     close: l10n.t('Close (Esc)'),
     empty: l10n.t('This document is empty. Double-click here to start writing.'),
+    selChars: l10n.t('{0} characters selected'),
+    selLines: l10n.t('{0} characters, {1} lines selected'),
   };
 }
 export type EditorStrings = ReturnType<typeof webviewStrings>;

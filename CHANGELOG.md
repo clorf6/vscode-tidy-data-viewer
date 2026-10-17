@@ -1,5 +1,16 @@
 # 更新日志 / Changelog
 
+## 0.1.6
+
+- 树视图、美化文本、INI / .env 和日志中的文字可以直接拖动选择、部分选择并复制，不必先选中行再双击进入编辑；双击选词、三击选整格 / 整行（只在当前单元格或值内，不会连到旁边的格子），右键菜单新增「复制所选文字」。
+- 复制的文字干净可用：美化模式保留缩进，多行树节点按 `键: 值` 排列，`↵` / `→` 还原成换行和制表符，行号、折叠按钮、计数等不会被复制；选区拖出窗口边缘自动滚动时起点不会丢。
+- 表格单元格内拖动可选择其中文字，拖到其他单元格则改为选择单元格区域；双击编辑时保持双击的那个词选中。
+- 状态栏显示选中文字的字符数和行数，选中字符串节点、单元格或日志行时显示其长度；Markdown 编辑器右下角显示选中文字的长度。
+
+---
+
+- Text in the tree, pretty text, INI and log views can be selected and copied directly (drag, double-click a word, triple-click a cell/line); copies keep indentation and real newlines and leave out gutters and chevrons. Inside a table cell a drag selects text, across cells it selects cells. The status bar shows the selection's characters and lines, or the selected value's length; the Markdown editor shows it in a corner chip.
+
 ## 0.1.5
 
 - 修复：日志 / 表格有时打开后只有行号和级别颜色、没有文字（诊断信息里 `gridCols: []`）。标签页被隐藏后 webview 会重建，若文件仍在增长，新页面会先收到一条进度更新、再收到初始化消息，于是表格误以为列已经设置过，结果一列都没有。现在初始化之前的更新会被忽略，并且总是对照表格实际拥有的列来同步。

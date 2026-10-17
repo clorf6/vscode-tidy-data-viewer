@@ -8,6 +8,7 @@ import type { EditorStrings } from '../src/markdown/editor';
 import type { ToHost, ToView, UiState } from '../src/markdown/protocol';
 import { addColumn, emptyRow, replaceCell, splitLines, splitRow, unescapeCell, escapeCell } from '../src/markdown/source';
 import { createBackToTop, createTableLayout, installCopyAndZoom, OWN_CONTROLS } from './md/features';
+import { measure, onSelectionChange } from './shared/selection';
 
 declare function acquireVsCodeApi(): { postMessage(m: unknown): void; getState(): unknown; setState(s: unknown): void };
 const vscode = acquireVsCodeApi();
@@ -174,6 +175,26 @@ function setUi(next: UiState) {
   applyUi();
   post({ type: 'ui', ui });
 }
+
+// ---- selection length ---------------------------------------------------------------------------------------------------
+// A chip at the bottom shows how much text is selected, in the rendered document or in a block being edited.
+const selInfo = h('div', 'dv-selinfo');
+selInfo.setAttribute('role', 'status');
+document.body.appendChild(selInfo);
+const numFmt = new Intl.NumberFormat(document.documentElement.lang || undefined);
+onSelectionChange(() => {
+  let text = '';
+  const ae = document.activeElement;
+  if (ae instanceof HTMLTextAreaElement && body.contains(ae)) text = ae.value.slice(ae.selectionStart, ae.selectionEnd);
+  else {
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed && sel.rangeCount && body.contains(sel.getRangeAt(0).commonAncestorContainer)) text = sel.toString();
+  }
+  if (!text) return void selInfo.classList.remove('dv-show');
+  const { chars, lines } = measure(text);
+  selInfo.textContent = lines > 1 ? fmt(S.selLines, numFmt.format(chars), numFmt.format(lines)) : fmt(S.selChars, numFmt.format(chars));
+  selInfo.classList.add('dv-show');
+});
 
 // ---- toast --------------------------------------------------------------------------------------------------------------
 let toastTimer = 0;

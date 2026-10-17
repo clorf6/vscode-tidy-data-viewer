@@ -1,5 +1,6 @@
 // Shared webview helpers for every Data Viewer page: the VS Code API, messaging, a tiny DOM builder and icons.
 // Data is always inserted with textContent — never innerHTML — because file contents are untrusted.
+import { measure } from './selection';
 
 interface VsCodeApi {
   postMessage(msg: unknown): void;
@@ -143,4 +144,10 @@ export function fmtBytes(n: number): string {
 /** Copy text via the host (navigator.clipboard is unreliable inside webviews). */
 export function copyText(text: string): void {
   post({ type: 'copy', text });
+}
+
+/** Status-bar text for a text selection: "12 characters selected" / "40 characters, 3 lines selected". */
+export function selectionLabel(text: string): string {
+  const { chars, lines } = measure(text);
+  return lines > 1 ? t('{0} characters, {1} lines selected', nf.format(chars), nf.format(lines)) : t('{0} characters selected', nf.format(chars));
 }

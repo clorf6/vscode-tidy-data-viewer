@@ -69,6 +69,12 @@ function visible(s: string): string {
   return s.replace(/\r\n|\n|\r/g, '↵').replace(/\t/g, '→');
 }
 
+/** Element showing `visible(s)`: marked so that a copy turns the glyphs back into the characters. */
+function markControls(el: HTMLElement, s: string): HTMLElement {
+  if (/[\r\n\t]/.test(s)) el.dataset.cc = '1';
+  return el;
+}
+
 function chevron(row: Row): HTMLElement {
   const tw = h('span', { class: 'tw' });
   if ((row.t === Kind.Obj || row.t === Kind.Arr) && row.n) {
@@ -138,7 +144,7 @@ export function valueEl(row: Pick<Row, 't' | 'v' | 'tr' | 'k' | 'id' | 'alias'>,
         wrap.append(sw);
       }
       const url = isUrl(v);
-      const s = hl(visible(v), ctx.re, 'v-str' + (url ? ' link' : '') + (quoted ? ' q' : ''));
+      const s = markControls(hl(visible(v), ctx.re, 'v-str' + (url ? ' link' : '') + (quoted ? ' q' : '')), v);
       if (url) {
         s.dataset.url = v;
         s.title = t('Ctrl+Click to open');
@@ -177,7 +183,7 @@ export function valueEl(row: Pick<Row, 't' | 'v' | 'tr' | 'k' | 'id' | 'alias'>,
       return wrap;
     }
     case Kind.Comment:
-      wrap.append(hl(visible(v), ctx.re, 'v-comment'));
+      wrap.append(markControls(hl(visible(v), ctx.re, 'v-comment'), v));
       if (row.tr) wrap.append(h('button', { class: 'more', 'data-full': String(row.id), title: t('Show full value') }, t('+{0} chars', nf.format(row.tr - v.length))));
       return wrap;
     default:
@@ -196,7 +202,7 @@ function preview(row: Row, re?: RegExp): HTMLElement {
     if (k !== null && !isArr) pv.append(hl(String(k), re, 'pk'), h('span', { class: 'pn' }, ': '));
     if (kind === Kind.Obj) pv.append(h('span', { class: 'pn' }, '{…}'));
     else if (kind === Kind.Arr) pv.append(h('span', { class: 'pn' }, '[…]'));
-    else pv.append(hl(kind === Kind.Str ? visible(s) : kind === Kind.Alias ? '*' + s : s, re, (KIND_CLASS[kind] ?? '') + (kind === Kind.Str ? ' q' : '')));
+    else pv.append(markControls(hl(kind === Kind.Str ? visible(s) : kind === Kind.Alias ? '*' + s : s, re, (KIND_CLASS[kind] ?? '') + (kind === Kind.Str ? ' q' : '')), kind === Kind.Str ? s : ''));
   });
   if (row.pm) pv.append(h('span', { class: 'pn' }, ', …'));
   pv.append(h('span', { class: 'pn' }, isArr ? ']' : ' }'));
@@ -424,8 +430,8 @@ export function renderPretty(el: HTMLElement, row: Row, r: number, ctx: Ctx): vo
   const code: Node[] = [];
   const unit = syn === 'yaml' ? 2 : ctx.indent;
   const depth = syn === 'yaml' ? row.d - (row.dash ?? 0) : row.d;
-  const ind = h('span', { class: 'ind pind' });
-  ind.style.width = Math.max(0, depth) * unit + 'ch';
+  // real spaces (not a sized box), so a copied block of lines keeps its indentation
+  const ind = h('span', { class: 'ind pind' }, ' '.repeat(Math.max(0, depth) * unit));
   ind.style.backgroundSize = unit + 'ch 100%';
   code.push(ind);
   const p = (s: string) => h('span', { class: 'pn' }, s);

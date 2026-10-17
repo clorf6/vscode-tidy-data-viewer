@@ -1,6 +1,6 @@
 # Tidy Data Viewer · 数据文件查看器
 
-**English summary:** readable, editable views for the data files you open every day — CSV/TSV, JSONL, logs and Parquet as a fast virtualized table; JSON, YAML, TOML, INI, `.env` and XML as a structured tree with a pretty-printed mode; Markdown as a WYSIWYG editor rendered by VS Code's own Markdown engine. Large files stay smooth, edits go through VS Code's undo/save, and every view has fast whole-file Ctrl+F search. UI in English and Simplified Chinese.
+**English summary:** readable, editable views for the data files you open every day — CSV/TSV, JSONL, logs and Parquet as a fast virtualized table; JSON, YAML, TOML, INI, `.env` and XML as a structured tree with a pretty-printed mode; Markdown as a WYSIWYG editor rendered by VS Code's own Markdown engine. Large files stay smooth, edits go through VS Code's undo/save, every view has fast whole-file Ctrl+F search, and text can be selected and copied directly, with the selection's length in the status bar. UI in English and Simplified Chinese.
 
 ---
 
@@ -36,6 +36,12 @@
 - **点勾选框直接改源文件**；**双击任意段落、标题、列表、代码块、表格**就地编辑它的 Markdown 源码（`Ctrl+Enter` 保存、`Esc` 取消）；**双击表格单元格**直接改，`Tab` 跳格，还能加行加列。
 - 目录侧栏、阅读宽度切换、「编辑源码」在旁边打开文本编辑器并双向同步滚动；撤销、保存都走 VS Code 本身。
 - 内置的 Markdown 预览也会获得同样的排版增强（`dataViewer.markdown.enhance`）。
+
+## 选择与复制
+
+- 树、美化文本、INI / .env、日志中的文字**直接拖动就能选**，不用先选中行或进入编辑；双击选一个词、三击选整格 / 整行，Shift+点击扩展选区。`Ctrl+C`（或右键「复制所选文字」）复制的就是选中的文字：美化模式保留缩进，多行树节点按 `键: 值` 排列，换行和制表符还原成原字符。
+- 表格中在一个单元格里拖动选择其中的文字；拖到别的单元格就变成选择单元格区域（照旧复制为 TSV）。双击单元格编辑时，双击的那个词会保持选中。
+- 状态栏显示选中文字的**字符数和行数**；选中字符串节点、单元格或日志行时显示它的长度。Markdown 编辑器中选中文字的长度显示在右下角。
 
 ## 搜索
 

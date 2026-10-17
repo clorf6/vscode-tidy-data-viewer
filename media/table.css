@@ -524,6 +524,16 @@
   left: 0;
   right: 0;
 }
+/* Text in cells and log lines can be selected directly; a drag that leaves the cell selects cells instead. */
+.tg:not(.tg-log) .tg-c {
+  cursor: default;
+}
+.tg-ranging .tg-c {
+  user-select: none;
+}
+.tg ::selection {
+  background: var(--vscode-editor-selectionBackground, Highlight);
+}
 .tg-row {
   --row-bg: var(--dv-bg);
   position: absolute;

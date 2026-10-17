@@ -4,6 +4,10 @@ import { l10n } from 'vscode';
 export function webviewStrings(): Record<string, string> {
   return {
     Tree: l10n.t('Tree'),
+    '{0} characters selected': l10n.t('{0} characters selected'),
+    '{0} characters, {1} lines selected': l10n.t('{0} characters, {1} lines selected'),
+    'Length {0}': l10n.t('Length {0}'),
+    'Copy selected text': l10n.t('Copy selected text'),
     Pretty: l10n.t('Pretty'),
     'Tree view': l10n.t('Tree view'),
     'Pretty text view': l10n.t('Pretty text view'),

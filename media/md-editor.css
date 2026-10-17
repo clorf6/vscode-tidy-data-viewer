@@ -525,8 +525,29 @@ html body.vscode-body.dv-md-editor {
   transform: translate(-50%, 0);
 }
 
+.dv-md-editor .dv-selinfo {
+  position: fixed;
+  right: 62px;
+  bottom: 22px;
+  z-index: 19;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font: 12px/1.5 var(--dvm-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--dvm-muted);
+  background: var(--vscode-editorWidget-background, var(--dvm-bg));
+  box-shadow: 0 0 0 1px var(--dvm-line);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+
+.dv-md-editor .dv-selinfo.dv-show {
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .dv-md-editor :is(.dv-outline, .dv-handle, .dv-table-tools, .dv-toast) {
+  .dv-md-editor :is(.dv-outline, .dv-handle, .dv-table-tools, .dv-toast, .dv-selinfo) {
     transition: none;
   }
 }

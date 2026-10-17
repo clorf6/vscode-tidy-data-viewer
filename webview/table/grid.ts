@@ -5,6 +5,10 @@ import { h, icon } from '../shared/vscode';
 import type { ColType, RowData } from '../../src/table/protocol';
 import { Heights } from './cache';
 import { renderLogLine, setHighlighted } from './render';
+import { copySelection, locate, restoreSelection, saveSelection, selectAt, selectedIn, selectionIn, serialize, SerializeOpts } from '../shared/selection';
+
+/** Selection points are kept per cell: key = row * CELL_KEY + column + 1 (0 = the row element itself). */
+const CELL_KEY = 65536;
 
 export interface Col {
   key: number;
@@ -109,7 +113,8 @@ export class Grid {
   private base = 0;
   private raf = 0;
   sel: Sel = { ar: 0, ac: 0, fr: 0, fc: 0, mode: 'cells' };
-  private drag?: { kind: 'sel' | 'resize'; col?: Col; x0?: number; w0?: number; lastX?: number; lastY?: number };
+  /** 'text': a press on cell / log text that may become a native text selection (r, c = where it started). */
+  private drag?: { kind: 'sel' | 'resize' | 'text'; col?: Col; x0?: number; w0?: number; lastX?: number; lastY?: number; r?: number; c?: number };
   private autoScroll = 0;
   logMode = false;
   logW = 0;
@@ -150,6 +155,57 @@ export class Grid {
     window.addEventListener('mouseup', () => this.onMouseUp());
     this.root.addEventListener('keydown', (e) => this.onKey(e));
     new ResizeObserver(() => this.measureView()).observe(this.scroller);
+    copySelection(this.rowsEl, () => this.copyOpts());
+  }
+
+  // ------------------------------------------------------------------------------------------------------------
+  // Text selection (log lines, text inside one cell)
+
+  private copyOpts(): SerializeOpts {
+    return {
+      skip: '.tg-gut',
+      row: '.tg-row',
+      cell: '.tg-c',
+      index: (el) => Number((el as HTMLElement).dataset.r),
+      // lines between a selection end kept off-screen and the visible rows
+      gap: (from, to) => {
+        const out: string[] = [];
+        for (let r = from + 1; r < to; r++) {
+          const d = this.host.row(r);
+          out.push(d ? (this.logMode ? (d.c[0] ?? '') : d.c.join('\t')) : '');
+        }
+        return out;
+      },
+    };
+  }
+
+  /** The selected text, when text inside the grid is selected. */
+  selectedText(): string | undefined {
+    const r = selectionIn(this.rowsEl);
+    return r ? serialize(r, this.copyOpts()) : undefined;
+  }
+
+  private pointOf(n: Node): [Element, number] | undefined {
+    for (const re of this.rowEls.values()) {
+      if (!re.el.contains(n)) continue;
+      for (const [c, cell] of re.cells) if (cell.contains(n)) return [cell, re.r * CELL_KEY + c + 1];
+      return [re.el, re.r * CELL_KEY];
+    }
+    return undefined;
+  }
+
+  private pointEl(key: number): Element | undefined {
+    const re = this.rowEls.get(Math.floor(key / CELL_KEY));
+    const c = (key % CELL_KEY) - 1;
+    return c < 0 ? re?.el : re?.cells.get(c);
+  }
+
+  /** Insert a row element so that DOM order follows row order (a selection over several lines runs in DOM order). */
+  private place(re: RowEl): void {
+    let next: HTMLElement | null = null;
+    let nr = Infinity;
+    for (const [k, o] of this.rowEls) if (k > re.r && k < nr && o !== re && o.el.parentNode === this.rowsEl) [nr, next] = [k, o.el];
+    this.rowsEl.insertBefore(re.el, next);
   }
 
   // ------------------------------------------------------------------------------------------------------------
@@ -430,6 +486,9 @@ export class Grid {
       this.rowEls.clear();
       return;
     }
+    // Rows may be rebuilt below (data arrived, columns scrolled): remember a text selection by cell and offset.
+    const keep = saveSelection(this.rowsEl, (n) => this.pointOf(n));
+    const holds = (r: number) => !!keep && [keep.anchor, keep.focus].some((p) => p && Math.floor(p.r / CELL_KEY) === r);
     const r0 = this.rowAtY(this.y);
     const baseRow = r0 - (r0 % 256);
     if (baseRow !== this.base) {
@@ -449,6 +508,7 @@ export class Grid {
       if (!re) {
         re = this.acquire(r);
         this.rowEls.set(r, re);
+        this.place(re);
       }
       const top = y - baseY;
       if (re.top !== top) {
@@ -466,9 +526,19 @@ export class Grid {
     }
     for (const [rr, re] of this.rowEls)
       if (!seen.has(rr)) {
+        // a row holding an end of the text selection stays, off-screen, until the selection goes
+        if (holds(rr)) {
+          const top = this.rowTop(rr) - baseY;
+          if (re.top !== top) {
+            re.top = top;
+            re.el.style.top = top + 'px';
+          }
+          continue;
+        }
         this.rowEls.delete(rr);
         this.release(re);
       }
+    if (keep) restoreSelection(keep, (k) => this.pointEl(k), () => undefined);
     this.missing = missing;
     this.host.need(r0, r);
     if (toMeasure.length) this.measureRows(toMeasure);
@@ -514,7 +584,6 @@ export class Grid {
     re.top = NaN;
     re.el.dataset.r = String(r);
     re.el.setAttribute('aria-rowindex', String(r + 2));
-    this.rowsEl.append(re.el);
     return re;
   }
 
@@ -793,10 +862,35 @@ export class Grid {
       if (!inside) this.select(r, Math.max(0, c), false, c < 0 || this.logMode ? 'rows' : 'cells');
       return;
     }
+    const plain = !e.shiftKey && !e.ctrlKey && !e.metaKey;
+    if (plain && c >= 0) {
+      const cell = t.closest('.tg-c');
+      if (e.detail >= 2 && cell) {
+        // double-click: a word, triple-click: the whole cell / line — within this cell (see selectAt)
+        e.preventDefault();
+        selectAt(cell, e.clientX, e.clientY, e.detail === 2 ? 'word' : 'all');
+        return;
+      }
+      // a press on selected text would start dragging it away: start a new selection instead
+      if (selectionIn(this.rowsEl)) getSelection()?.removeAllRanges();
+    }
     if (c < 0 || this.logMode) {
+      if (this.logMode && c >= 0 && plain) {
+        // Log text: the press selects the line and leaves the browser to select text (the gutter selects lines).
+        this.setSel({ ar: r, ac: 0, fr: r, fc: 0, mode: 'rows' }, false);
+        this.drag = { kind: 'text', r, c };
+        return;
+      }
       this.select(r, 0, e.shiftKey, 'rows');
       this.drag = { kind: 'sel' };
     } else {
+      if (plain) {
+        // A press in a cell selects it and may go on to select some of its text; moving into another cell turns the
+        // drag into a cell range (onMouseMove).
+        this.setSel({ ar: r, ac: c, fr: r, fc: c, mode: 'cells' }, false);
+        this.drag = { kind: 'text', r, c };
+        return;
+      }
       this.select(r, c, e.shiftKey, 'cells');
       this.drag = { kind: 'sel' };
     }
@@ -805,6 +899,14 @@ export class Grid {
 
   private onMouseMove(e: MouseEvent): void {
     if (!this.drag) return;
+    if (this.drag.kind === 'text') {
+      if (this.logMode) return;
+      const { r, c } = this.hit(e.clientX, e.clientY);
+      if (r === this.drag.r && c === this.drag.c) return;
+      this.drag = { kind: 'sel' };
+      this.root.classList.add('tg-ranging');
+      getSelection()?.removeAllRanges();
+    }
     if (this.drag.kind === 'resize' && this.drag.col) {
       const w = Math.max(36, Math.min(2000, this.drag.w0! + e.clientX - this.drag.x0!));
       if (w !== this.drag.col.w) {
@@ -852,8 +954,15 @@ export class Grid {
   }
 
   private onMouseUp(): void {
-    if (this.drag?.kind === 'resize' && this.drag.col) this.host.widthChanged(this.drag.col);
+    const d = this.drag;
+    if (d?.kind === 'resize' && d.col) this.host.widthChanged(d.col);
     this.drag = undefined;
+    this.root.classList.remove('tg-ranging');
+    // a plain click (no text selected): bring a partly hidden cell / line fully into view, as a press used to
+    if (d?.kind === 'text' && d.r !== undefined && !selectionIn(this.rowsEl)) {
+      this.scrollToRow(d.r);
+      if (!this.logMode && d.c !== undefined) this.scrollToCol(d.c);
+    }
   }
 
   private onDblClick(e: MouseEvent): void {
@@ -864,7 +973,8 @@ export class Grid {
       return;
     }
     const { r, c } = this.hit(e.clientX, e.clientY);
-    if (r >= 0 && c >= 0 && r < this.count && !this.logMode) void this.startEdit(r, c);
+    // the editor opens with the double-clicked word selected, as it was in the cell
+    if (r >= 0 && c >= 0 && r < this.count && !this.logMode) void this.startEdit(r, c, undefined, selectedIn(t.closest('.tg-c')));
   }
 
   private onContext(e: MouseEvent): void {
@@ -956,6 +1066,8 @@ export class Grid {
     if (mod && k === 'a') {
       this.selectAll();
     } else if (mod && k === 'c') {
+      // selected text: let the browser copy it (copySelection supplies the text)
+      if (selectionIn(this.rowsEl)) return;
       this.host.copy();
     } else if (mod && k === 'v') {
       if (this.host.canEdit()) this.host.paste();
@@ -978,7 +1090,7 @@ export class Grid {
   // ------------------------------------------------------------------------------------------------------------
   // Editing
 
-  async startEdit(r: number, c: number, initial?: string): Promise<void> {
+  async startEdit(r: number, c: number, initial?: string, pick?: { text: string; at: number }): Promise<void> {
     if (!this.host.canEdit() || r < 0 || r >= this.count || c < 0) return;
     const col = this.cols[c];
     this.select(r, c, false);
@@ -998,7 +1110,8 @@ export class Grid {
     this.positionEditor();
     this.editor.focus();
     const len = this.editor.value.length;
-    this.editor.setSelectionRange(len, len);
+    const [a, b] = locate(value, pick) ?? [len, len];
+    this.editor.setSelectionRange(a, b);
   }
 
   private positionEditor(): void {

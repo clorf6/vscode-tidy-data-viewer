@@ -1,11 +1,12 @@
 // Tree / pretty-text / table viewer for JSON, YAML, TOML, INI, .env and XML. All parsing happens on the host; this
 // page renders the visible window of rows it is sent and turns clicks and keys into requests.
-import { copyText, fmtBytes, getState, h, icon, nf, onMessage, post, rafThrottle, setState, setStrings, t } from './shared/vscode';
+import { copyText, fmtBytes, getState, h, icon, nf, onMessage, post, rafThrottle, selectionLabel, setState, setStrings, t } from './shared/vscode';
 import { Kind, KeyKind, RowKind } from '../src/tree/protocol';
 import type { EditOp, HostMsg, Mode, PathStyle, Row, SearchQuery, Status, Syntax, ViewMsg, WebMsg, WebState } from '../src/tree/protocol';
 import { VList } from './tree/vlist';
 import { Ctx, IND, TABLES, renderIni, renderPlaceholder, renderPretty, renderTableHead, renderTree, tableWidth } from './tree/rows';
 import { closeMenu, closePop, MenuItem, popOpen, showMenu, showPop, toast } from './tree/ui';
+import { copySelection, locate, onSelectionChange, rowText, selectAt, selectedIn, selectionIn, serialize, SerializeOpts } from './shared/selection';
 
 const send = (m: WebMsg) => post(m);
 const saved = getState<WebState & { pathStyle?: PathStyle }>() ?? {};
@@ -228,7 +229,88 @@ function initList(): void {
   vl.el.addEventListener('click', onClick);
   vl.el.addEventListener('dblclick', onDblClick);
   vl.el.addEventListener('contextmenu', onContext);
+  copySelection(vl.el, copyOpts);
+  onSelectionChange(updateSelInfo);
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Text selection: row text can be selected directly; a copy gets clean text and the status bar shows its length.
+
+/** Row parts that are chrome, not content: not selectable (see tree.css) and never copied. */
+const NO_COPY = '.tw,.ind:not(.pind),.gut,button,.cnt,.sw,.hint-ic,.hint,.anc,.ph-bar,.ini-ln,.sec-n,.badge,.c-idx';
+
+const levelOf = (el: Element) => (el.matches('.tr') ? Number(el.getAttribute('aria-level')) : NaN);
+/** Tree rows copied together are indented relative to the first one. */
+const indentFor = (d: number, base: number) => (d > base ? '  '.repeat(d - base) : '');
+
+/** Level and text of rows a selection spans that are scrolled out of the DOM, by row index (per view version). */
+const gapText = new Map<number, [number, string]>();
+let gapVersion = -1;
+
+function copyOpts(): SerializeOpts {
+  const o: SerializeOpts = {
+    skip: NO_COPY,
+    row: '.row',
+    cell: '.c,.hc',
+    index: (el) => Number((el as HTMLElement).dataset.r),
+    prefix: (row, first) => indentFor(levelOf(row), levelOf(first)),
+    gap: (from, to, first) => {
+      if (gapVersion !== vl.version) {
+        gapText.clear();
+        gapVersion = vl.version;
+      }
+      const base = first ? levelOf(first) : NaN;
+      const lines: string[] = [];
+      const scratch = document.createElement('div');
+      for (let r = from + 1; r < to; r++) {
+        const row = vl.cache.get(r);
+        if (!row) {
+          lines.push('');
+          continue;
+        }
+        let g = gapText.get(r);
+        if (!g) {
+          render(scratch, row, r);
+          g = [levelOf(scratch), rowText(scratch, o)];
+          gapText.set(r, g);
+        }
+        lines.push(indentFor(g[0], base) + g[1]);
+      }
+      return lines;
+    },
+    map: (text, parent, whole) => {
+      if (parent.closest('.colon')) return text + ' ';
+      if (parent.closest('[data-cc]')) return text.replace(/↵/g, '\n').replace(/→/g, '\t');
+      // a comment shown beside a tree / INI entry (pretty text has its own spacing): keep it apart from the value
+      if (whole && S.mode === 'tree' && parent.matches('.cmt')) return '  ' + (S.layout === 'ini' && !/^[;#]/.test(text) ? '; ' : '') + text;
+      return text;
+    },
+  };
+  return o;
+}
+
+const selInfo = h('span', { class: 'tv-selinfo' });
+
+/** Status bar: length of the selected text, or of the selected string value. */
+function updateSelInfo(): void {
+  let text = '';
+  const r = vl && selectionIn(vl.el);
+  if (r) text = selectionLabel(serialize(r, copyOpts()));
+  else {
+    const sel = getSelection();
+    const pop = document.querySelector('.tv-full');
+    if (sel && !sel.isCollapsed && pop?.contains(sel.anchorNode)) text = selectionLabel(sel.toString());
+    else {
+      const row = vl && selRow();
+      if (row && row.r === RowKind.Node && (row.t === Kind.Str || row.t === Kind.Comment)) text = t('Length {0}', nf.format(row.tr ?? [...(row.v ?? '')].length));
+    }
+  }
+  if (selInfo.textContent !== text) selInfo.textContent = text;
+  selInfo.hidden = !text;
+}
+
+/** The word a double-click selected inside `el`, as a range of `raw` (the text the editor opens with). */
+const clickedWord = (el: Element | null, raw: string) => locate(raw, selectedIn(el));
 
 function setFocus(on: boolean): void {
   if (S.focused === on) return;
@@ -250,6 +332,7 @@ function select(r: number, reveal: 'auto' | 'center' | 'none' = 'auto'): void {
   vl.el.setAttribute('aria-activedescendant', 'r' + r);
   if (reveal !== 'none') vl.reveal(r, reveal);
   vl.invalidate();
+  updateSelInfo();
   clearTimeout(selTimer);
   selTimer = window.setTimeout(() => {
     const cur = vl.cache.get(S.sel);
@@ -374,9 +457,25 @@ function hit(e: MouseEvent, at?: HTMLElement): { r: number; row?: Row; target: H
 /** Element the current press started on. */
 let pressed: HTMLElement | null = null;
 
+/** The text a double / triple click selects in: a table cell, a pretty-text line, otherwise the row. */
+function textUnit(target: HTMLElement): Element | null {
+  if (target.closest(NO_COPY)) return null;
+  return target.closest('.c,.hc') ?? target.closest('.row.pl .code') ?? target.closest('.row');
+}
+
 function onMouseDown(e: MouseEvent): void {
   if (e.button !== 0 && e.button !== 2) return;
   pressed = e.target as HTMLElement;
+  if (e.button === 0 && !e.shiftKey) {
+    const unit = e.detail >= 2 ? textUnit(e.target as HTMLElement) : null;
+    if (unit) {
+      e.preventDefault();
+      selectAt(unit, e.clientX, e.clientY, e.detail === 2 ? 'word' : 'all');
+    } else if (e.detail === 1 && selectionIn(vl.el)) {
+      // a press on selected text would start dragging it away: start a new selection instead
+      getSelection()?.removeAllRanges();
+    }
+  }
   // Left button: select on click, not here. Re-rendering the rows between press and release replaces the chevron or
   // button under the pointer, and Chromium then fires no click at all — collapsing an unselected row took two clicks.
   if (e.button !== 2) return;
@@ -417,19 +516,25 @@ let chevronAt = 0;
 function onDblClick(e: MouseEvent): void {
   const { row, target } = hit(e);
   if (!row || target.closest('button,.tw.can,.ft.can') || Date.now() - chevronAt < 600) return;
-  window.getSelection()?.removeAllRanges();
+  if (isContainer(row) && !target.closest('.k-prop,.ini-k,.k-sec')) {
+    window.getSelection()?.removeAllRanges();
+    return void toggle(row);
+  }
+  // Read-only: the double-click just selects the word, like in any text.
+  if (!canEditRow(row)) return;
+  // Otherwise edit, with the double-clicked word selected in the editor (so double-click + Ctrl+C still copies it).
   if (row.r === RowKind.TableRow) {
     const cell = target.closest<HTMLElement>('.c[data-id]');
     if (cell && !cell.classList.contains('nest')) {
       const id = Number(cell.dataset.id);
       const c = row.cells?.find((x) => x?.id === id);
-      if (c) startEdit({ ...row, id, t: c.t, v: c.v, tr: c.tr, r: RowKind.Node }, 'value', cell);
+      if (c) startEdit({ ...row, id, t: c.t, v: c.v, tr: c.tr, r: RowKind.Node }, 'value', cell, clickedWord(cell, c.v ?? ''));
     }
     return;
   }
-  if (target.closest('.k-prop,.ini-k,.k-sec')) return void startEdit(row, 'key');
-  if (isContainer(row)) return void toggle(row);
-  if (row.r === RowKind.Node) startEdit(row, 'value');
+  const keyEl = target.closest('.k-prop,.ini-k,.k-sec');
+  if (keyEl) return void startEdit(row, 'key', undefined, clickedWord(keyEl, String(row.k ?? '')));
+  if (row.r === RowKind.Node) startEdit(row, 'value', undefined, clickedWord(target.closest('.val,.ev'), row.v ?? ''));
 }
 
 function onContext(e: MouseEvent): void {
@@ -467,7 +572,13 @@ function rowMenu(row: Row, x: number, y: number): void {
     persist();
     toast(t('Copied'));
   };
-  if (!isC && row.t !== Kind.Obj && row.t !== Kind.Arr) items.push({ label: t('Copy value'), icon: 'copy', kbd: 'Ctrl+C', run: copy('value') });
+  // text selected in the list: copying exactly that comes first
+  const picked = selectionIn(vl.el);
+  if (picked) {
+    const text = serialize(picked, copyOpts());
+    items.push({ label: t('Copy selected text'), icon: 'copy', kbd: 'Ctrl+C', run: () => (copyText(text), toast(t('Copied'))) });
+  }
+  if (!isC && row.t !== Kind.Obj && row.t !== Kind.Arr) items.push({ label: t('Copy value'), icon: 'copy', kbd: picked ? undefined : 'Ctrl+C', run: copy('value') });
   items.push({ label: t('Copy as JSON'), icon: 'braces', run: copy('json') });
   items.push({ label: t('Copy as YAML'), icon: 'list', run: copy('yaml') });
   if (S.format === 'xml') items.push({ label: t('Copy as XML'), icon: 'code', run: copy('xml') });
@@ -530,7 +641,7 @@ function kindType(k: Kind): VT {
   return k === Kind.Num ? 'number' : k === Kind.True || k === Kind.False ? 'boolean' : k === Kind.Null ? 'null' : 'string';
 }
 
-function startEdit(row: Row, what: 'key' | 'value', anchor?: HTMLElement): void {
+function startEdit(row: Row, what: 'key' | 'value', anchor?: HTMLElement, word?: [number, number]): void {
   if (!canEditRow(row)) {
     if (S.status?.readOnly) toast(S.status.readOnly, 'error');
     return;
@@ -538,15 +649,15 @@ function startEdit(row: Row, what: 'key' | 'value', anchor?: HTMLElement): void 
   if (what === 'key' && row.kk !== KeyKind.Prop && row.kk !== KeyKind.Section) return;
   if (what === 'value' && (row.t === Kind.Obj || row.t === Kind.Arr || row.t === Kind.Alias)) return;
   if (what === 'value' && row.tr) {
-    pendingEdit = { row, anchor };
+    pendingEdit = { row, anchor, word };
     send({ type: 'getValue', id: row.id, purpose: 'edit' });
     return;
   }
-  openEditor(row, what, what === 'key' ? String(row.k ?? '') : row.v ?? '', anchor);
+  openEditor(row, what, what === 'key' ? String(row.k ?? '') : row.v ?? '', anchor, word);
 }
-let pendingEdit: { row: Row; anchor?: HTMLElement } | undefined;
+let pendingEdit: { row: Row; anchor?: HTMLElement; word?: [number, number] } | undefined;
 
-function openEditor(row: Row, what: 'key' | 'value', text: string, anchor?: HTMLElement): void {
+function openEditor(row: Row, what: 'key' | 'value', text: string, anchor?: HTMLElement, word?: [number, number]): void {
   closeEditor(false);
   const multi = what === 'value' && (text.includes('\n') || text.length > 200);
   const input = multi ? (h('textarea', { spellcheck: 'false', rows: '6' }) as HTMLTextAreaElement) : (h('input', { type: 'text', spellcheck: 'false' }) as HTMLInputElement);
@@ -605,7 +716,8 @@ function openEditor(row: Row, what: 'key' | 'value', text: string, anchor?: HTML
   editing = ed;
   positionEditor();
   input.focus();
-  if (input instanceof HTMLInputElement) input.select();
+  if (word) input.setSelectionRange(word[0], word[1]);
+  else if (input instanceof HTMLInputElement) input.select();
   validate();
 }
 
@@ -928,7 +1040,8 @@ function renderStatus(st: Status): void {
   const parts: (Node | string)[] = [h('span', { class: 'tv-fmt' }, st.label), h('span', null, t('{0} nodes', nf.format(st.nodes))), h('span', null, fmtBytes(st.bytes))];
   if (st.parseMs !== undefined && st.parseMs > 50) parts.push(h('span', { class: 'v-muted' }, `${nf.format(st.parseMs)} ms`));
   if (st.readOnly) parts.push(h('span', { class: 'tv-ro', title: st.readOnly }, icon('eye', 12), t('Read-only')));
-  statusBar.replaceChildren(...parts, h('span', { class: 'dv-spacer' }), h('span', { class: 'mono tv-path', title: t('Selected path') }, S.path));
+  statusBar.replaceChildren(...parts, h('span', { class: 'dv-spacer' }), selInfo, h('span', { class: 'mono tv-path', title: t('Selected path') }, S.path));
+  updateSelInfo();
 }
 
 function renderEmpty(): void {
@@ -1029,7 +1142,7 @@ onMessage<HostMsg>((m) => {
       if (m.purpose === 'edit' && pendingEdit && pendingEdit.row.id === m.id) {
         const pe = pendingEdit;
         pendingEdit = undefined;
-        openEditor(pe.row, 'value', m.text, pe.anchor);
+        openEditor(pe.row, 'value', m.text, pe.anchor, pe.word);
       } else valuePop(m.text, !!m.truncated);
       return;
     case 'notice':

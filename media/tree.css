@@ -305,6 +305,20 @@ body {
 .row:hover {
   background: var(--dv-hover);
 }
+/* Row text is selectable straight away (drag, double-click a word, Shift+click); the chrome around it is not, and is
+   not copied either (see NO_COPY in tree.ts). */
+.vl .row {
+  user-select: text;
+}
+.vl .row :is(.tw, .ind, .gut, button, .cnt, .sw, .hint-ic, .hint, .anc, .ph-bar, .ini-ln, .sec-n, .badge, .c-idx) {
+  user-select: none;
+}
+.vl .row .pind {
+  user-select: text;
+}
+.vl ::selection {
+  background: var(--vscode-editor-selectionBackground, Highlight);
+}
 .row.sel {
   background: var(--dv-selected);
 }
@@ -1084,6 +1098,10 @@ body[data-mode='pretty'] .vl {
 }
 .tv-status .tv-path {
   max-width: 55%;
+}
+.tv-selinfo {
+  color: var(--dv-fg);
+  font-variant-numeric: tabular-nums;
 }
 .tv-empty {
   position: absolute;

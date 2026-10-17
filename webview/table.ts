@@ -1,11 +1,12 @@
 // Data Viewer table page: CSV/TSV/JSONL/Parquet grid and the log view.
-import { fmtBytes, getState, h, icon, nf, onMessage, post, rafThrottle, setState, setStrings, t } from './shared/vscode';
+import { fmtBytes, getState, h, icon, nf, onMessage, post, rafThrottle, selectionLabel, setState, setStrings, t } from './shared/vscode';
 import type { ColMeta, CopyFormat, Density, EditOp, FileInfo, Filter, FilterOp, Meta, Query, RowData, Settings, Stats, ToHost, ToView } from '../src/table/protocol';
 import { RowCache } from './table/cache';
 import { DetailPanel, typeLabel } from './table/detail';
 import { Col, Grid, GridHost, Sel, TYPE_ICON } from './table/grid';
 import { closePopup, MenuItem, openMenu, openPopover, repositionPopup } from './table/popup';
 import { highlighter } from './table/render';
+import { measure, onSelectionChange, selectionIn } from './shared/selection';
 
 // ------------------------------------------------------------------------------------------------------------------
 // State
@@ -716,7 +717,25 @@ function renderBanners(): void {
 // ------------------------------------------------------------------------------------------------------------------
 // Status bar
 
+/** Length of the selected cell / line ("+" when only the start of a long value has been loaded). */
+function lengthOf(r: number, li: number): string[] {
+  const row = cache.get(r);
+  const v = row && row.k?.[li] !== 'z' && row.k?.[li] !== 'u' ? (row.c[li] ?? '') : '';
+  if (!v) return [];
+  return [' · ' + t('Length {0}', nf.format(measure(v).chars) + (row?.tr?.includes(li) ? '+' : ''))];
+}
+
+/** "N characters selected" while text in the grid or the record panel is selected. */
+function textSelection(): string | undefined {
+  const text = grid?.selectedText();
+  if (text) return selectionLabel(text);
+  const r = detail && selectionIn(detail.el);
+  return r ? selectionLabel(r.toString()) : undefined;
+}
+
 function selectionSummary(): (HTMLElement | string)[] {
+  const text = textSelection();
+  if (text) return [text];
   if (!grid || !meta || !meta.count) return [];
   const [r0, r1, c0, c1] = grid.selRect();
   const nr = r1 - r0 + 1;
@@ -724,11 +743,11 @@ function selectionSummary(): (HTMLElement | string)[] {
   const cells = nr * nc;
   if (cells <= 1 && grid.sel.mode === 'cells') {
     const col = grid.cols[grid.sel.fc];
-    return col ? [h('span', { class: 'mono tb-cellref' }, `${col.name} · ${t('Row {0}', nf.format(grid.sel.fr + 1))}`)] : [];
+    return col ? [h('span', { class: 'mono tb-cellref' }, `${col.name} · ${t('Row {0}', nf.format(grid.sel.fr + 1))}`), ...lengthOf(grid.sel.fr, col.li)] : [];
   }
   if (isLog && nr === 1) {
     const ln = cache.get(grid.sel.fr)?.ln;
-    return ln ? [h('span', { class: 'mono tb-cellref' }, t('Line {0}', nf.format(ln)))] : [];
+    return ln ? [h('span', { class: 'mono tb-cellref' }, t('Line {0}', nf.format(ln))), ...lengthOf(grid.sel.fr, 0)] : [];
   }
   const out: (HTMLElement | string)[] = [isLog ? t('{0} lines selected', nf.format(nr)) : `${nf.format(nr)} × ${nf.format(nc)} · ${t('{0} cells', nf.format(cells))}`];
   if (isLog || cells > 200000) return out;
@@ -795,6 +814,7 @@ const updateStatus = rafThrottle(() => {
   if (meta.readOnly && !meta.indexing) status.append(h('span', { class: 'dv-tag', title: meta.readOnlyReason }, t('Read-only')));
   else if (meta.dirty) status.append(h('span', { class: 'dv-tag tb-dirty' }, t('Modified')));
 });
+onSelectionChange(updateStatus);
 
 function updateMetaLine(): void {
   if (!metaEl || !meta || !file) return;
@@ -1028,8 +1048,10 @@ function cellMenu(e: MouseEvent): void {
   const row = cache.get(grid.sel.fr);
   const value = row && col ? (row.k?.[col.li] === 'z' ? '' : (row.c[col.li] ?? '')) : '';
   const nrows = r1 - r0 + 1;
+  const picked = grid.selectedText();
   const items: MenuItem[] = [
-    { label: t('Copy'), icon: 'copy', kbd: 'Ctrl+C', run: () => copySelection('tsv', false) },
+    ...(picked ? [{ label: t('Copy selected text'), icon: 'copy', kbd: 'Ctrl+C', run: () => send({ type: 'copy', text: picked }) }] : []),
+    { label: t('Copy'), icon: 'copy', kbd: picked ? undefined : 'Ctrl+C', run: () => copySelection('tsv', false) },
     { label: t('Copy with headers'), run: () => copySelection('tsv', true) },
     { label: t('Copy as CSV'), run: () => copySelection('csv', true) },
     { label: t('Copy as Markdown'), run: () => copySelection('markdown', true) },

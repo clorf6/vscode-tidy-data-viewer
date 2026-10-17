@@ -5,6 +5,10 @@ import { l10n } from 'vscode';
 export function webviewStrings(): Record<string, string> {
   return {
     '(empty)': l10n.t('(empty)'),
+    '{0} characters selected': l10n.t('{0} characters selected'),
+    '{0} characters, {1} lines selected': l10n.t('{0} characters, {1} lines selected'),
+    'Length {0}': l10n.t('Length {0}'),
+    'Copy selected text': l10n.t('Copy selected text'),
     'Apply': l10n.t('Apply'),
     'Avg': l10n.t('Avg'),
     'Boolean': l10n.t('Boolean'),

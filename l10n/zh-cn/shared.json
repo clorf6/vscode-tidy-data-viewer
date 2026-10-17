@@ -1,3 +1,7 @@
 {
-  "Data Viewer does not handle this file type.": "数据查看器不支持此文件类型。"
+  "Data Viewer does not handle this file type.": "数据查看器不支持此文件类型。",
+  "{0} characters selected": "已选择 {0} 个字符",
+  "{0} characters, {1} lines selected": "已选择 {0} 个字符，{1} 行",
+  "Length {0}": "长度 {0}",
+  "Copy selected text": "复制所选文字"
 }
