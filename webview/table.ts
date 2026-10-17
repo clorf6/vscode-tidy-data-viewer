@@ -717,38 +717,45 @@ function renderBanners(): void {
 // ------------------------------------------------------------------------------------------------------------------
 // Status bar
 
-/** Length of the selected cell / line ("+" when only the start of a long value has been loaded). */
-function lengthOf(r: number, li: number): string[] {
+/** Length of the current cell / line ("+" when only the start of a long value has been loaded). */
+function lengthOf(r: number, li: number): string | undefined {
   const row = cache.get(r);
   const v = row && row.k?.[li] !== 'z' && row.k?.[li] !== 'u' ? (row.c[li] ?? '') : '';
-  if (!v) return [];
-  return [' · ' + t('Length {0}', nf.format(measure(v).chars) + (row?.tr?.includes(li) ? '+' : ''))];
+  return v ? t('Length {0}', nf.format(measure(v).chars) + (row?.tr?.includes(li) ? '+' : '')) : undefined;
 }
 
-/** "N characters selected" while text in the grid or the record panel is selected. */
-function textSelection(): string | undefined {
+/** Text readout, the same in every state: the edited text's length (or its selected part) while editing, else the
+ * text selected in the grid or the record panel. */
+function textInfo(): string | undefined {
+  const ed = grid?.editorText();
+  if (ed) return ed.selected ? selectionLabel(ed.selected) : t('Length {0}', nf.format(measure(ed.value).chars));
   const text = grid?.selectedText();
   if (text) return selectionLabel(text);
   const r = detail && selectionIn(detail.el);
   return r ? selectionLabel(r.toString()) : undefined;
 }
 
+/** Status bar selection part: "column · Row n · Length 12" / "Line n · 3 characters selected" / a range summary. */
 function selectionSummary(): (HTMLElement | string)[] {
-  const text = textSelection();
-  if (text) return [text];
   if (!grid || !meta || !meta.count) return [];
   const [r0, r1, c0, c1] = grid.selRect();
   const nr = r1 - r0 + 1;
   const nc = isLog ? 1 : c1 - c0 + 1;
   const cells = nr * nc;
+  const where = (label: string, li: number) => {
+    const info = textInfo() ?? lengthOf(grid!.sel.fr, li);
+    return [h('span', { class: 'mono tb-cellref' }, label), ...(info ? [' · ' + info] : [])];
+  };
   if (cells <= 1 && grid.sel.mode === 'cells') {
     const col = grid.cols[grid.sel.fc];
-    return col ? [h('span', { class: 'mono tb-cellref' }, `${col.name} · ${t('Row {0}', nf.format(grid.sel.fr + 1))}`), ...lengthOf(grid.sel.fr, col.li)] : [];
+    return col ? where(`${col.name} · ${t('Row {0}', nf.format(grid.sel.fr + 1))}`, col.li) : [];
   }
   if (isLog && nr === 1) {
     const ln = cache.get(grid.sel.fr)?.ln;
-    return ln ? [h('span', { class: 'mono tb-cellref' }, t('Line {0}', nf.format(ln))), ...lengthOf(grid.sel.fr, 0)] : [];
+    return ln ? where(t('Line {0}', nf.format(ln)), 0) : [];
   }
+  const text = textInfo();
+  if (text) return [text];
   const out: (HTMLElement | string)[] = [isLog ? t('{0} lines selected', nf.format(nr)) : `${nf.format(nr)} × ${nf.format(nc)} · ${t('{0} cells', nf.format(cells))}`];
   if (isLog || cells > 200000) return out;
   let n = 0;
@@ -815,6 +822,8 @@ const updateStatus = rafThrottle(() => {
   else if (meta.dirty) status.append(h('span', { class: 'dv-tag tb-dirty' }, t('Modified')));
 });
 onSelectionChange(updateStatus);
+// typing in the cell editor changes its length
+document.addEventListener('input', (e) => (e.target as HTMLElement).classList?.contains('tg-editor') && updateStatus());
 
 function updateMetaLine(): void {
   if (!metaEl || !meta || !file) return;

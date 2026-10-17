@@ -6,7 +6,7 @@ import type { EditOp, HostMsg, Mode, PathStyle, Row, SearchQuery, Status, Syntax
 import { VList } from './tree/vlist';
 import { Ctx, IND, TABLES, renderIni, renderPlaceholder, renderPretty, renderTableHead, renderTree, tableWidth } from './tree/rows';
 import { closeMenu, closePop, MenuItem, popOpen, showMenu, showPop, toast } from './tree/ui';
-import { copySelection, locate, onSelectionChange, rowText, selectAt, selectedIn, selectionIn, serialize, SerializeOpts } from './shared/selection';
+import { copySelection, locate, measure, onSelectionChange, rowText, selectAt, selectedIn, selectionIn, serialize, SerializeOpts } from './shared/selection';
 
 const send = (m: WebMsg) => post(m);
 const saved = getState<WebState & { pathStyle?: PathStyle }>() ?? {};
@@ -291,12 +291,16 @@ function copyOpts(): SerializeOpts {
 
 const selInfo = h('span', { class: 'tv-selinfo' });
 
-/** Status bar: length of the selected text, or of the selected string value. */
+/** Status bar: length of the selected text, of the text being edited, or of the current string value. */
 function updateSelInfo(): void {
   let text = '';
   const r = vl && selectionIn(vl.el);
-  vl?.el.classList.toggle('tv-textsel', !!r);
-  if (r) text = selectionLabel(serialize(r, copyOpts()));
+  const ed = editing;
+  if (ed && document.activeElement === ed.input) {
+    // editing: the same readout for the text being edited
+    const { value, selectionStart: a, selectionEnd: b } = ed.input;
+    text = a !== null && b !== null && b > a ? selectionLabel(value.slice(a, b)) : t('Length {0}', nf.format(measure(value).chars));
+  } else if (r) text = selectionLabel(serialize(r, copyOpts()));
   else {
     const sel = getSelection();
     const pop = document.querySelector('.tv-full');
@@ -688,6 +692,7 @@ function openEditor(row: Row, what: 'key' | 'value', text: string, anchor?: HTML
     return !msg;
   };
   input.addEventListener('input', validate);
+  for (const ev of ['input', 'select', 'keyup', 'mouseup']) input.addEventListener(ev, updateSelInfo);
   input.addEventListener('keydown', (e) => {
     const ke = e as KeyboardEvent;
     if (ke.key === 'Escape') {
@@ -720,6 +725,21 @@ function openEditor(row: Row, what: 'key' | 'value', text: string, anchor?: HTML
   if (word) input.setSelectionRange(word[0], word[1]);
   else if (input instanceof HTMLInputElement) input.select();
   validate();
+  updateSelInfo();
+}
+
+/** Left edge of the first character shown in `el` (after a ::before quote mark), or of `el` itself. */
+function textLeft(el: HTMLElement): number {
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (!(n as Text).data.trim() || n.parentElement?.closest(NO_COPY)) continue;
+    const r = document.createRange();
+    r.setStart(n, 0);
+    r.setEnd(n, 1);
+    const b = r.getBoundingClientRect();
+    if (b.width || b.height) return b.left;
+  }
+  return el.getBoundingClientRect().left;
 }
 
 function positionEditor(): void {
@@ -733,9 +753,10 @@ function positionEditor(): void {
   ed.box.style.visibility = '';
   const target = ed.anchor && rowEl.contains(ed.anchor) ? ed.anchor : (rowEl.querySelector<HTMLElement>(ed.what === 'key' ? '.k-prop,.ini-k,.k-sec' : '.val,.ini-v,.ev') ?? rowEl);
   const mr = main.getBoundingClientRect();
-  const tr = target.getBoundingClientRect();
+  const tr = textLeft(target);
   const rr = rowEl.getBoundingClientRect();
-  const left = Math.max(0, tr.left - mr.left - 4);
+  // the editor's text starts where the shown text starts (border 1px + padding 3px), so editing happens in place
+  const left = Math.max(0, tr - mr.left - 4);
   ed.box.style.left = left + 'px';
   ed.box.style.top = rr.top - mr.top - 1 + 'px';
   const minW = ed.what === 'key' ? 160 : 260;
@@ -749,6 +770,7 @@ function closeEditor(commit: boolean): void {
   editing = undefined;
   ed.box.remove();
   vl.el.focus({ preventScroll: true });
+  updateSelInfo();
   if (!commit) return;
   const v = ed.input.value;
   if (ed.what === 'key') {

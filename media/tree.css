@@ -876,6 +876,8 @@ body[data-mode='pretty'] .vl {
 }
 
 /* ---------- inline editor ---------- */
+/* In-place editor: the value's own text becomes editable where it is shown (same font, same position), framed by a
+   thin accent border. */
 .tv-editor {
   position: absolute;
   z-index: 20;
@@ -885,9 +887,11 @@ body[data-mode='pretty'] .vl {
   height: 24px;
   padding: 0 2px 0 0;
   border: 1px solid var(--dv-accent);
-  border-radius: 3px;
-  background: var(--vscode-input-background, var(--dv-bg));
-  color: var(--vscode-input-foreground, var(--dv-fg));
+  border-radius: 2px;
+  background: var(--dv-bg);
+  color: var(--dv-fg);
+}
+.tv-editor.multi {
   box-shadow: var(--dv-shadow);
 }
 .tv-editor.bad {
@@ -898,7 +902,7 @@ body[data-mode='pretty'] .vl {
   flex: 1;
   min-width: 0;
   height: 100%;
-  padding: 0 6px;
+  padding: 0 3px;
   border: 0;
   outline: none;
   background: transparent;
@@ -1181,41 +1185,47 @@ body.vscode-high-contrast .chip-tb {
   border-color: var(--vscode-contrastBorder, var(--dv-border));
 }
 
-/* ---------- text selection ---------- */
-.vl ::selection {
-  background: var(--dv-textsel);
-}
-body.vscode-high-contrast .vl ::selection,
-body.vscode-high-contrast-light .vl ::selection {
-  background: var(--vscode-editor-selectionBackground, var(--dv-accent));
-  color: var(--vscode-editor-selectionForeground, inherit);
-}
-/* While text is selected, rows drop their selection and hover colours, so the selected characters are what stands
-   out (the line number of the selected row stays highlighted). Last in the file: these win over the row rules. */
-.vl.tv-textsel .row.sel,
-.vl.tv-textsel.tv-focus .row.sel,
-.vl.tv-textsel.tv-focus .row.hit.sel,
-.vl.tv-textsel .row.pl.sel,
-.vl.tv-textsel.tv-focus .row.pl.sel,
-.vl.tv-textsel .row.td.sel,
-.vl.tv-textsel.tv-focus .row.td.sel {
-  background: transparent;
-  outline: none;
+/* ---------- current row & text selection ----------
+   One model, as in a text editor: the current row is a faint tint (plus an accent bar while the list has focus) and
+   selected text is the one strong colour, so a selection inside the current row always reads clearly. Last in the
+   file so these win over the per-layout row rules above. */
+.vl .row.sel,
+.vl .row.hit.sel,
+.vl .row.td.sel,
+.vl .row.td.odd.sel,
+.vl .row.pl.sel {
+  background: var(--dv-row-idle);
   box-shadow: none;
 }
-.vl.tv-textsel .row:hover,
-.vl.tv-textsel .row.pl:hover,
-.vl.tv-textsel .row.td:hover {
-  background: transparent;
+.vl.tv-focus .row.sel,
+.vl.tv-focus .row.hit.sel,
+.vl.tv-focus .row.td.sel,
+.vl.tv-focus .row.td.odd.sel {
+  background: var(--dv-row-current);
+  box-shadow: inset 2px 0 0 var(--dv-accent);
 }
-.vl.tv-textsel .row.td.odd.sel,
-.vl.tv-textsel.tv-focus .row.td.odd.sel,
-.vl.tv-textsel .row.td.odd:hover {
-  background: var(--tv-zebra);
+.vl.tv-focus .row.pl.sel {
+  background: var(--dv-row-current);
+  box-shadow: none;
 }
-.vl.tv-textsel .row.hit:hover {
-  background: var(--tv-hit-row);
+.vl.tv-focus .row.pl.sel .gut {
+  box-shadow: inset 2px 0 0 var(--dv-accent);
 }
-.vl.tv-textsel .row.th:hover {
-  background: var(--dv-subtle);
+.vl .row.sel.cur,
+.vl.tv-focus .row.sel.cur,
+.vl.tv-focus .row.hit.sel.cur,
+.vl.tv-focus .row.pl.sel.cur {
+  box-shadow: inset 3px 0 0 var(--vscode-editorOverviewRuler-findMatchForeground, var(--dv-match-current));
+}
+body:not(.vscode-high-contrast):not(.vscode-high-contrast-light) .tv-focus .row.sel {
+  outline: none;
+}
+.vl ::selection,
+.tv-editor ::selection {
+  background: var(--dv-textsel);
+}
+body.vscode-high-contrast :is(.vl, .tv-editor) ::selection,
+body.vscode-high-contrast-light :is(.vl, .tv-editor) ::selection {
+  background: var(--vscode-editor-selectionBackground, var(--dv-accent));
+  color: var(--vscode-editor-selectionForeground, inherit);
 }

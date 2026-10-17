@@ -5,7 +5,7 @@ import { h, icon } from '../shared/vscode';
 import type { ColType, RowData } from '../../src/table/protocol';
 import { Heights } from './cache';
 import { renderLogLine, setHighlighted } from './render';
-import { copySelection, locate, onSelectionChange, restoreSelection, saveSelection, selectAt, selectedIn, selectionIn, serialize, SerializeOpts } from '../shared/selection';
+import { copySelection, locate, restoreSelection, saveSelection, selectAt, selectedIn, selectionIn, serialize, SerializeOpts } from '../shared/selection';
 
 /** Selection points are kept per cell: key = row * CELL_KEY + column + 1 (0 = the row element itself). */
 const CELL_KEY = 65536;
@@ -156,8 +156,6 @@ export class Grid {
     this.root.addEventListener('keydown', (e) => this.onKey(e));
     new ResizeObserver(() => this.measureView()).observe(this.scroller);
     copySelection(this.rowsEl, () => this.copyOpts());
-    // while text is selected, selected rows / cells drop their colour (table.css) so the selected characters stand out
-    onSelectionChange(() => this.root.classList.toggle('tg-textsel', !!selectionIn(this.rowsEl)));
   }
 
   // ------------------------------------------------------------------------------------------------------------
@@ -179,6 +177,13 @@ export class Grid {
         return out;
       },
     };
+  }
+
+  /** The cell editor's text and its selected part, while a cell is being edited. */
+  editorText(): { value: string; selected: string } | undefined {
+    const e = this.editor;
+    if (!this.editing || !e || document.activeElement !== e) return undefined;
+    return { value: e.value, selected: e.value.slice(e.selectionStart, e.selectionEnd) };
   }
 
   /** The selected text, when text inside the grid is selected. */
@@ -741,12 +746,15 @@ export class Grid {
     const [r0, r1, c0, c1] = this.selRect();
     const inRows = re.r >= r0 && re.r <= r1;
     const active = re.r === this.sel.fr;
-    re.el.classList.toggle('sel', inRows && this.sel.mode === 'rows');
+    // A single cell / log line is just "current" (outline, faint row tint) — only ranges are filled — so text selected
+    // inside it always shows in the selection colour.
+    const range = this.sel.mode === 'rows' ? r1 > r0 || !this.logMode : this.sel.mode === 'cols' || r1 > r0 || c1 > c0;
+    re.el.classList.toggle('sel', inRows && this.sel.mode === 'rows' && range);
     re.el.classList.toggle('act', active);
     re.gut.classList.toggle('sel', inRows);
     for (const [c, cell] of re.cells) {
       const s = inRows && c >= c0 && c <= c1 && !this.logMode;
-      cell.classList.toggle('sel', s);
+      cell.classList.toggle('sel', s && range);
       const a = active && c === this.sel.fc && !this.logMode;
       cell.classList.toggle('act', a);
       if (a) {

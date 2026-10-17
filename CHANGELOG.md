@@ -1,5 +1,13 @@
 # 更新日志 / Changelog
 
+## 0.1.9
+
+- 整理“行高亮 / 选中文字 / 编辑”为同一套规则：当前行只用淡底色和左侧色条标出（表格当前单元格只有边框），选中的文字始终是唯一醒目的颜色，不再在选择文字时临时隐藏行高亮；编辑框就地出现在原文字的位置，双击的词保持选中；状态栏在同一位置显示选中文字的字符数 / 行数、正在编辑内容的长度（随输入更新）或当前值的长度，表格为「列 · 第 n 行 · …」。
+
+---
+
+- One model for rows, selected text and editing: the current row is a faint tint with an accent bar (a single table cell only gets an outline), selected text is the one strong colour, editing happens in place with the double-clicked word kept selected, and the status bar shows the selection's length, the edited text's length while editing, or the current value's length.
+
 ## 0.1.8
 
 - 选中文字的高亮改用主题的强调色（通常是蓝色），不再用编辑器选区色——不少主题把它设成接近灰色，和行的悬停 / 选中底色几乎一样；选择文字时鼠标所在行也不再显示悬停底色。

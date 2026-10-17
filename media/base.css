@@ -17,6 +17,9 @@
   /* Selected text: the theme accent rather than editor.selectionBackground, which many themes make a grey close to the
      row hover / selection colours, so the selected characters would not stand out. */
   --dv-textsel: color-mix(in srgb, var(--dv-accent) 50%, transparent);
+  /* the current row / line: a faint tint, so selected text inside it stays the strongest colour */
+  --dv-row-current: color-mix(in srgb, var(--dv-accent) 12%, transparent);
+  --dv-row-idle: color-mix(in srgb, var(--dv-fg) 6%, transparent);
   --dv-accent: var(--vscode-focusBorder, #3794ff);
   --dv-link: var(--vscode-textLink-foreground, var(--dv-accent));
   --dv-warn: var(--vscode-editorWarning-foreground, #cca700);
