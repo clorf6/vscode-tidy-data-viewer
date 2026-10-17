@@ -8,7 +8,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { createTestPanel, customEditors, registry } from './vscode-mock';
 import { registerTableEditor, TableEditorProvider } from '../src/table/provider';
-import type { TableDocument } from '../src/table/document';
+import { LIMITS, type TableDocument } from '../src/table/document';
 import type { RowData, ToView } from '../src/table/protocol';
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dv-host-'));
@@ -328,6 +328,107 @@ test('backup and revert', async () => {
   doc.dispose();
   doc2.dispose();
   edits.length = 0;
+});
+
+function csvRows(n: number): string {
+  let s = 'id,name,score\n';
+  for (let i = 0; i < n; i++) s += `${i},name-${i},${(i * 7) % 100}\n`;
+  return s;
+}
+
+test('large file: read-only by size → Allow editing → edit → save streams the file', async () => {
+  registry.config['table.maxEditableMB'] = 0.01; // 10 KB
+  try {
+    const src = csvRows(2000);
+    const { f, doc, panel, last } = await open('big-edit.csv', src);
+    assert.equal(doc.editable, false);
+    assert.equal(doc.sizeLock, 'memory');
+    assert.equal(last('meta').meta.unlockable, true);
+    await panel.receive({ type: 'allowEdit' });
+    assert.equal(doc.editable, true);
+    assert.equal(last('meta').meta.unlockable, false);
+    assert.equal(last('meta').meta.readOnly, false);
+    await panel.receive({ type: 'edit', edit: { op: 'set', row: 1500, key: 1, value: 'changed' } });
+    await provider.saveCustomDocument(doc);
+    assert.equal(fs.readFileSync(f, 'utf8'), src.replace('1500,name-1500,', '1500,changed,'));
+    doc.dispose();
+  } finally {
+    delete registry.config['table.maxEditableMB'];
+    edits.length = 0;
+  }
+});
+
+test('large file backups store only the changes and restore them, before and after a save', async () => {
+  const minWas = LIMITS.patchMin;
+  LIMITS.patchMin = 0;
+  try {
+    const src = csvRows(5000);
+    const { f, uri, doc, panel } = await open('big-backup.csv', src);
+    await panel.receive({ type: 'edit', edit: { op: 'set', row: 10, key: 1, value: 'first' } });
+    await panel.receive({ type: 'edit', edit: { op: 'deleteRows', rows: [20, 21] } });
+    const dest = vscode.Uri.file(path.join(dir, 'big-backup.bak'));
+    const b1 = await doc.backup(dest);
+    const raw = fs.readFileSync(dest.fsPath);
+    assert.ok(raw.subarray(0, 9).toString() === 'DVPATCH1\n', 'patch format');
+    assert.ok(raw.length < 1000, `backup holds only the changes (${raw.length} bytes for a ${src.length}-byte file)`);
+    const restore = async (id: string) => {
+      const d = (await provider.openCustomDocument(uri, { backupId: id } as vscode.CustomDocumentOpenContext)) as TableDocument;
+      await until(() => d.loaded);
+      return d;
+    };
+    let d2 = await restore(b1.id);
+    assert.equal(d2.dirty, true);
+    assert.equal(Buffer.from(d2.serialize()).toString(), Buffer.from(doc.serialize()).toString());
+    d2.dispose();
+    // save, edit again: the backup now refers to the saved file
+    await provider.saveCustomDocument(doc);
+    await panel.receive({ type: 'edit', edit: { op: 'set', row: 3000, key: 2, value: 'second' } });
+    const b2 = await doc.backup(dest);
+    assert.ok(fs.statSync(dest.fsPath).size < 1000);
+    d2 = await restore(b2.id);
+    assert.equal(Buffer.from(d2.serialize()).toString(), Buffer.from(doc.serialize()).toString());
+    d2.dispose();
+    // the file changed on disk since the backup: the backup cannot apply, the file opens as it is (with a warning)
+    fs.appendFileSync(f, '99999,late,1\n');
+    registry.messages.length = 0;
+    d2 = await restore(b2.id);
+    assert.equal(d2.dirty, false);
+    assert.ok(Buffer.from(d2.serialize()).toString().endsWith('99999,late,1\n'));
+    assert.ok(registry.messages.some((m) => m.startsWith('warn:')));
+    d2.dispose();
+    doc.dispose();
+  } finally {
+    LIMITS.patchMin = minWas;
+    edits.length = 0;
+  }
+});
+
+test('streamed file: Allow editing asks, then loads it into memory', async () => {
+  const resWas = LIMITS.resident;
+  LIMITS.resident = 4096;
+  const win = vscode.window as unknown as { showWarningMessage: (...a: unknown[]) => Promise<unknown> };
+  const warn = win.showWarningMessage;
+  try {
+    const src = csvRows(1000);
+    const { f, doc, panel } = await open('big-streamed.csv', src);
+    assert.equal(doc.rows!.resident, false);
+    assert.equal(doc.sizeLock, 'streamed');
+    win.showWarningMessage = async () => undefined; // cancelled
+    await panel.receive({ type: 'allowEdit' });
+    assert.equal(doc.editable, false);
+    win.showWarningMessage = async (...a: unknown[]) => a[2]; // "Load and Edit"
+    await panel.receive({ type: 'allowEdit' });
+    await until(() => doc.loaded && doc.editable);
+    assert.equal(doc.rows!.resident, true);
+    await panel.receive({ type: 'edit', edit: { op: 'set', row: 5, key: 2, value: '-1' } });
+    await provider.saveCustomDocument(doc);
+    assert.equal(fs.readFileSync(f, 'utf8'), src.replace('5,name-5,35\n', '5,name-5,-1\n'));
+    doc.dispose();
+  } finally {
+    LIMITS.resident = resWas;
+    win.showWarningMessage = warn;
+    edits.length = 0;
+  }
 });
 
 test.after(() => {

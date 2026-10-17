@@ -218,6 +218,11 @@
   "{0} of {1}": "{0} / {1}",
   "{0} rows have a different number of fields": "{0} 行的字段数与表头不一致",
   "Table diagnostics copied to the clipboard — please paste them to the developer.": "表格诊断信息已复制到剪贴板，请粘贴给开发者。",
+  "Allow editing": "允许编辑",
+  "Click to allow editing": "点击允许编辑",
+  "Load and Edit": "载入并编辑",
+  "To edit {0}, the whole file ({1}) is loaded into memory. Continue?": "要编辑 {0}，需要把整个文件（{1}）载入内存。继续吗？",
+  "The unsaved changes to {0} could not be restored: the file has changed on disk since.": "无法恢复 {0} 未保存的修改：此后磁盘上的文件已被更改。",
   "{0} characters": "{0} 个字符",
   "+{0} chars": "+{0} 字符",
   "{0} errors": "{0} 个错误",
@@ -374,5 +379,12 @@
   "XPath": "XPath",
   "YAML": "YAML",
   "YAML · {0} documents": "YAML · {0} 个文档",
-  "Contains matches": "包含匹配项"
+  "Contains matches": "包含匹配项",
+  "Pick color": "选择颜色",
+  "Hue": "色相",
+  "Opacity": "不透明度",
+  "Saturation and brightness": "饱和度和亮度",
+  "Color value": "颜色值",
+  "Pick a color from the screen": "从屏幕取色",
+  "Before / after": "修改前 / 修改后"
 }

@@ -88,6 +88,7 @@ const ICONS: Record<string, string> = {
   calendar: 'M2.5 4h11v9.5h-11zM2.5 7h11M5.5 2.5v3M10.5 2.5v3',
   toggle: 'M5 4.5h6a3.5 3.5 0 0 1 0 7H5a3.5 3.5 0 0 1 0-7zM11 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
   link: 'M6.5 9.5l3-3M5 7L3.5 8.5a2.5 2.5 0 0 0 3.5 3.5L8.5 10.5M11 9l1.5-1.5A2.5 2.5 0 0 0 9 4L7.5 5.5',
+  eyedropper: 'M11 2.5l2.5 2.5-1.8 1.8-2.5-2.5zM9.2 4.3L3 10.5V13h2.5l6.2-6.2',
 };
 
 export type IconName = keyof typeof ICONS | string;

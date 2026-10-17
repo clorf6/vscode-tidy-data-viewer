@@ -115,6 +115,8 @@ export interface Meta {
   eol: string;
   readOnly: boolean;
   readOnlyReason?: string;
+  /** Read-only only because of the file's size: "Allow editing" can lift it. */
+  unlockable?: boolean;
   dirty: boolean;
   warnings: string[];
   invalid?: number;
@@ -155,6 +157,8 @@ export type ToHost =
   | { type: 'header'; value: boolean }
   | { type: 'viewCols'; keys: number[] }
   | { type: 'command'; id: 'openAsText' | 'export' | 'reload' | 'goToRow' | 'settings' }
+  /** Edit a file that opened read-only because of its size. */
+  | { type: 'allowEdit' }
   | { type: 'follow'; on: boolean }
   | { type: 'findLevel'; from: number; dir: 1 | -1; mask: number; vv: number }
   | { type: 'findInvalid'; from: number; dir: 1 | -1; vv: number }

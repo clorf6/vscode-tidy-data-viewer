@@ -169,5 +169,13 @@
   "XPath": "XPath",
   "YAML": "YAML",
   "YAML · {0} documents": "YAML · {0} 个文档",
-  "Contains matches": "包含匹配项"
+  "Contains matches": "包含匹配项",
+  "Pick color": "选择颜色",
+  "Apply": "应用",
+  "Hue": "色相",
+  "Opacity": "不透明度",
+  "Saturation and brightness": "饱和度和亮度",
+  "Color value": "颜色值",
+  "Pick a color from the screen": "从屏幕取色",
+  "Before / after": "修改前 / 修改后"
 }

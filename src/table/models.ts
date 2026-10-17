@@ -43,6 +43,29 @@ export function truncate(s: string): string {
   return s.length > CELL_MAX ? s.slice(0, CELL_MAX) : s;
 }
 
+/**
+ * Drop the final line ending of serialized output (a file that had none keeps none). Works on the list of parts the
+ * serializers build, without joining them: the ending can straddle two parts ("\r" | "\n").
+ */
+function trimFinalEol(parts: Buffer[]): Buffer[] {
+  while (parts.length && !parts[parts.length - 1].length) parts.pop();
+  const i = parts.length - 1;
+  if (i < 0 || parts[i][parts[i].length - 1] !== 10) return parts;
+  const p = parts[i];
+  if (p.length > 1) parts[i] = p.subarray(0, p.length - (p[p.length - 2] === 13 ? 2 : 1));
+  else {
+    parts.pop();
+    const q = parts[i - 1];
+    if (q && q[q.length - 1] === 13) parts[i - 1] = q.subarray(0, q.length - 1);
+  }
+  return parts;
+}
+
+/** Bytes of serialized parts, joined (small files, tests). */
+export function joinParts(parts: Buffer[]): Buffer {
+  return Buffer.concat(parts);
+}
+
 function rangeArray(from: number, n: number): Uint32Array {
   const a = new Uint32Array(n);
   for (let i = 0; i < n; i++) a[i] = from + i;
@@ -521,6 +544,14 @@ export class CsvModel extends TextModel implements TableModel {
 
   /** Serialize to UTF-8 (without BOM). Unchanged rows are copied byte for byte. */
   serialize(eol: string): Buffer {
+    return joinParts(this.serializeParts(eol));
+  }
+
+  /**
+   * The file's new content (UTF-8) as a list of parts: unchanged runs of rows are slices of the loaded bytes, edited
+   * rows are new buffers. Saving writes them one after another, so a large file is never copied in memory.
+   */
+  serializeParts(eol: string): Buffer[] {
     const r = this.rows;
     const parts: Buffer[] = [];
     const ident = this.colsIdentity();
@@ -585,11 +616,7 @@ export class CsvModel extends TextModel implements TableModel {
       }
     }
     flush();
-    let out = Buffer.concat(parts);
-    if (!r.trailingEol && out.length) {
-      if (out[out.length - 1] === 10) out = out.subarray(0, out.length - (out.length > 1 && out[out.length - 2] === 13 ? 2 : 1));
-    }
-    return out;
+    return r.trailingEol ? parts : trimFinalEol(parts);
   }
 }
 
@@ -979,6 +1006,11 @@ export class JsonlModel extends TextModel implements TableModel {
   }
 
   serialize(eol: string): Buffer {
+    return joinParts(this.serializeParts(eol));
+  }
+
+  /** As CsvModel.serializeParts: unchanged runs are slices of the loaded bytes. */
+  serializeParts(eol: string): Buffer[] {
     const r = this.rows;
     const parts: Buffer[] = [];
     const rename = new Map<string, string>();
@@ -1024,9 +1056,7 @@ export class JsonlModel extends TextModel implements TableModel {
       parts.push(Buffer.from(line + eol));
     }
     flush();
-    let out = Buffer.concat(parts);
-    if (!r.trailingEol && out.length && out[out.length - 1] === 10) out = out.subarray(0, out.length - (out.length > 1 && out[out.length - 2] === 13 ? 2 : 1));
-    return out;
+    return r.trailingEol ? parts : trimFinalEol(parts);
   }
 
   /** Raw JSON for a cell (detail panel pretty printing). */

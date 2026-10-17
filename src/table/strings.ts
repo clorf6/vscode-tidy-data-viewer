@@ -9,6 +9,8 @@ export function webviewStrings(): Record<string, string> {
     '{0} characters, {1} lines selected': l10n.t('{0} characters, {1} lines selected'),
     'Length {0}': l10n.t('Length {0}'),
     'Copy selected text': l10n.t('Copy selected text'),
+    'Allow editing': l10n.t('Allow editing'),
+    'Click to allow editing': l10n.t('Click to allow editing'),
     'Apply': l10n.t('Apply'),
     'Avg': l10n.t('Avg'),
     'Boolean': l10n.t('Boolean'),

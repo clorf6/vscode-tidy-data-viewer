@@ -672,6 +672,11 @@ function renderChips(): void {
 // ------------------------------------------------------------------------------------------------------------------
 // Banners
 
+/** Edit a file that opened read-only because of its size (the host asks first when it must load the whole file). */
+function allowEdit(): void {
+  send({ type: 'allowEdit' });
+}
+
 function renderBanners(): void {
   banners.textContent = '';
   if (errorMsg) banners.append(h('div', { class: 'dv-banner error' }, icon('warning', 14), h('span', null, errorMsg), h('span', { class: 'dv-spacer' }), h('button', { class: 'dv-iconbtn', 'aria-label': t('Close'), onclick: () => ((errorMsg = undefined), renderBanners()) }, icon('close', 14))));
@@ -696,6 +701,7 @@ function renderBanners(): void {
         icon('info', 14),
         h('span', null, meta.readOnlyReason),
         h('span', { class: 'dv-spacer' }),
+        meta.unlockable ? h('button', { class: 'dv-btn primary', onclick: allowEdit }, icon('edit', 14), t('Allow editing')) : null,
         h(
           'button',
           {
@@ -818,7 +824,9 @@ const updateStatus = rafThrottle(() => {
   facts.push(meta.encoding);
   if (file.kind !== 'parquet') facts.push(meta.eol);
   status.append(h('span', null, facts.join(' · ')));
-  if (meta.readOnly && !meta.indexing) status.append(h('span', { class: 'dv-tag', title: meta.readOnlyReason }, t('Read-only')));
+  if (meta.readOnly && !meta.indexing && meta.unlockable)
+    status.append(h('button', { class: 'dv-tag tb-unlock', title: `${meta.readOnlyReason ?? ''}\n${t('Click to allow editing')}`, onclick: allowEdit }, icon('edit', 11), t('Read-only')));
+  else if (meta.readOnly && !meta.indexing) status.append(h('span', { class: 'dv-tag', title: meta.readOnlyReason }, t('Read-only')));
   else if (meta.dirty) status.append(h('span', { class: 'dv-tag tb-dirty' }, t('Modified')));
 });
 onSelectionChange(updateStatus);

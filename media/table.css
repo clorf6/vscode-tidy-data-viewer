@@ -242,6 +242,9 @@
 .dv-banner.info .dv-icon {
   color: var(--dv-accent);
 }
+.dv-banner .dv-btn .dv-icon {
+  color: currentColor;
+}
 .dv-banner .dv-iconbtn {
   width: 22px;
   height: 22px;
@@ -1360,4 +1363,18 @@ body.vscode-high-contrast-light .tg-c.json {
   .tp-cols {
     scrollbar-color: var(--vscode-scrollbarSlider-background, rgba(121, 121, 121, 0.4)) transparent;
   }
+}
+
+/* "Read-only" in the status bar of a file that is read-only only because of its size: a button that allows editing */
+.tb-unlock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.tb-unlock:hover {
+  color: var(--dv-fg);
+  background: var(--dv-hover);
 }

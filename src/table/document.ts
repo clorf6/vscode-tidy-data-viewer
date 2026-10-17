@@ -13,9 +13,60 @@ import { Slicer, Token, isCancel } from './sched';
 import { TextRows, encodeOut } from './textrows';
 import { DELIMS, detectEol, sniffDelimiter } from './csv';
 
-export const RESIDENT_LIMIT = 512 * 1024 * 1024;
+export const LIMITS = {
+  /** Larger files are streamed from disk (read-only) instead of loaded into memory. */
+  resident: 512 * 1024 * 1024,
+  /** Largest file "Allow editing" loads into memory (the row index keeps 32-bit offsets). */
+  editMax: 4 * 1024 * 1024 * 1024 - (1 << 20),
+  /** Backups of files at least this large store only the changes, as references into the file on disk. */
+  patchMin: 8 * 1024 * 1024,
+};
 /** Backups written in this session (so reopening does not depend on parsing the id). */
 const backupUris = new Map<string, vscode.Uri>();
+
+/** A backup that stores only the changes: this marker line, a JSON line (the file's size / mtime and the segments:
+ * triples [0, fileOffset, length] = copy from the file, [1, literalOffset, length] = take from the bytes that follow),
+ * then the literal bytes. */
+const PATCH_MAGIC = Buffer.from('DVPATCH1\n');
+
+function isPatch(b: Uint8Array): boolean {
+  return b.length >= PATCH_MAGIC.length && Buffer.from(b.buffer, b.byteOffset, PATCH_MAGIC.length).equals(PATCH_MAGIC);
+}
+
+/** Is `p` a view into `buf` (an unchanged run of the loaded bytes)? */
+function isSliceOf(p: Buffer, buf: Buffer): boolean {
+  return p.buffer === buf.buffer && p.byteOffset >= buf.byteOffset && p.byteOffset + p.length <= buf.byteOffset + buf.length;
+}
+
+async function writeAll(fh: fs.promises.FileHandle, b: Buffer): Promise<void> {
+  for (let off = 0; off < b.length; ) off += (await fh.write(b, off, b.length - off)).bytesWritten;
+}
+
+/** Write parts one after another — a large file is never joined into one buffer. */
+async function writeParts(path: string, parts: Buffer[]): Promise<void> {
+  const fh = await fs.promises.open(path, 'w');
+  try {
+    for (let i = 0; i < parts.length; i += 256) {
+      const batch = parts.slice(i, i + 256).filter((b) => b.length);
+      const want = batch.reduce((n, b) => n + b.length, 0);
+      let done = want ? (await fh.writev(batch)).bytesWritten : 0;
+      // writev may stop short: finish the batch piece by piece
+      for (const b of batch) {
+        if (done >= b.length) done -= b.length;
+        else {
+          await writeAll(fh, b.subarray(done));
+          done = 0;
+        }
+      }
+    }
+  } finally {
+    await fh.close();
+  }
+}
+
+function fmtSize(n: number): string {
+  return n >= 1 << 30 ? (n / (1 << 30)).toFixed(1) + ' GB' : Math.round(n / (1 << 20)) + ' MB';
+}
 
 export function kindFor(uri: vscode.Uri): TableKind {
   const name = (uri.path.split('/').pop() ?? '').toLowerCase();
@@ -49,6 +100,14 @@ export class TableDocument implements vscode.CustomDocument {
   viewCols: number[] = [];
   eol = '\n';
   readOnlyReason?: string;
+  /** Read-only only because of the size: 'memory' = loaded, editing just needs "Allow editing"; 'streamed' = the file
+   * has to be loaded into memory first. */
+  sizeLock?: 'memory' | 'streamed';
+  /** "Allow editing" was chosen (kept across reloads). */
+  private allowLarge = false;
+  /** Where runs of the loaded bytes are in the file on disk: sorted [bufStart, bufEnd, fileOffset] — a backup can then
+   * refer to the file instead of copying it. Undefined when the loaded bytes are not (or no longer) the file's. */
+  private diskMap?: number[][];
   fromBackup = false;
   private pos = 0;
   private savedPos = 0;
@@ -192,18 +251,29 @@ export class TableDocument implements vscode.CustomDocument {
       if (first && !setupDone) return; // handled after the await below
       this.postMeta(false);
     };
+    this.diskMap = undefined;
     const backup = this.backupId ? (backupUris.get(this.backupId) ?? vscode.Uri.parse(this.backupId)) : undefined;
-    if (backup || this.uri.scheme !== 'file') {
-      const bytes = await vscode.workspace.fs.readFile(backup ?? this.uri);
-      if (backup) this.fromBackup = true;
+    let restored: { bytes: Uint8Array; map?: number[][]; stat?: { size: number; mtimeMs: number } } | undefined;
+    if (backup) {
+      const bytes = await vscode.workspace.fs.readFile(backup);
+      const r = isPatch(bytes) ? await this.applyPatch(bytes) : { bytes };
+      if (r) restored = r;
+      else void vscode.window.showWarningMessage(l10n.t('The unsaved changes to {0} could not be restored: the file has changed on disk since.', this.name));
+    }
+    if (restored || this.uri.scheme !== 'file') {
+      const bytes = restored?.bytes ?? (await vscode.workspace.fs.readFile(this.uri));
+      if (restored) this.fromBackup = true;
       await rows.loadBytes(bytes, token);
+      if (restored?.stat) this.lastStat = restored.stat;
+      if (restored?.map && !rows.enc.transcoded) this.diskMap = restored.map.map(([s, e, d]) => [s - rows.dataStart, e - rows.dataStart, d]);
       await setup();
     } else {
       const st = await fs.promises.stat(this.uri.fsPath);
       this.lastStat = { size: st.size, mtimeMs: st.mtimeMs };
-      if (st.size > RESIDENT_LIMIT && model instanceof LogModel) model.deferLevels();
+      const streamed = st.size > LIMITS.resident && !(this.allowLarge && st.size <= LIMITS.editMax && kind !== 'log');
+      if (streamed && model instanceof LogModel) model.deferLevels();
       const firstDone = new Promise<void>((resolve) => {
-        const load = st.size > RESIDENT_LIMIT ? rows.openStreamed(this.uri.fsPath, (f) => (f ? resolve() : onProgress(f)), token) : rows.loadFile(this.uri.fsPath, (f) => (f ? resolve() : onProgress(f)), token, kind === 'log' ? 1 << 20 : 0);
+        const load = streamed ? rows.openStreamed(this.uri.fsPath, (f) => (f ? resolve() : onProgress(f)), token) : rows.loadFile(this.uri.fsPath, (f) => (f ? resolve() : onProgress(f)), token, kind === 'log' ? 1 << 20 : 0);
         this.loading = load.then(
           () => resolve(),
           (e) => {
@@ -218,12 +288,75 @@ export class TableDocument implements vscode.CustomDocument {
       token.check();
       await setup();
       await this.loading;
+      if (rows.resident && !rows.enc.transcoded) this.diskMap = [[0, rows.size, rows.dataStart]];
     }
-    if (!rows.resident) this.readOnlyReason = l10n.t('This file is larger than {0} MB, so it is opened read-only and streamed from disk.', Math.round(RESIDENT_LIMIT / 1048576));
-    else if (kind === 'log') this.readOnlyReason = l10n.t('Logs are read-only.');
+    this.sizeLock = undefined;
+    if (!rows.resident) {
+      this.readOnlyReason = l10n.t('This file is larger than {0} MB, so it is opened read-only and streamed from disk.', Math.round(LIMITS.resident / 1048576));
+      if (kind !== 'log' && rows.enc.writable && rows.fileSize <= LIMITS.editMax) this.sizeLock = 'streamed';
+    } else if (kind === 'log') this.readOnlyReason = l10n.t('Logs are read-only.');
     else if (!rows.enc.writable) this.readOnlyReason = l10n.t('Opened read-only: {0} files cannot be saved by Data Viewer.', rows.enc.name);
-    else if (rows.fileSize > maxMB * 1048576) this.readOnlyReason = l10n.t('This file is larger than {0} MB, so it is opened read-only.', maxMB);
-    else this.readOnlyReason = undefined;
+    else if (rows.fileSize > maxMB * 1048576 && !this.allowLarge) {
+      this.readOnlyReason = l10n.t('This file is larger than {0} MB, so it is opened read-only.', maxMB);
+      this.sizeLock = 'memory';
+    } else this.readOnlyReason = undefined;
+  }
+
+  /** "Allow editing" for a file that is read-only only because of its size. */
+  async allowEditing(): Promise<void> {
+    if (this.sizeLock === 'memory') {
+      this.allowLarge = true;
+      this.sizeLock = undefined;
+      this.readOnlyReason = undefined;
+      this.postMeta(true);
+      return;
+    }
+    if (this.sizeLock !== 'streamed' || !this.rows) return;
+    const go = l10n.t('Load and Edit');
+    const pick = await vscode.window.showWarningMessage(
+      l10n.t('To edit {0}, the whole file ({1}) is loaded into memory. Continue?', this.name, fmtSize(this.rows.fileSize)),
+      { modal: true },
+      go,
+    );
+    if (pick !== go) return;
+    this.allowLarge = true;
+    await this.reload();
+  }
+
+  /** Rebuild the content a patch backup describes, reading the unchanged parts straight from the file; undefined when the
+   * file has changed since the backup was taken. */
+  private async applyPatch(bytes: Uint8Array): Promise<{ bytes: Buffer; map: number[][]; stat: { size: number; mtimeMs: number } } | undefined> {
+    const b = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.length);
+    const nl = b.indexOf(10, PATCH_MAGIC.length);
+    const head = JSON.parse(b.toString('utf8', PATCH_MAGIC.length, nl)) as { size: number; mtimeMs: number; segs: number[] };
+    const lit = b.subarray(nl + 1);
+    if (this.uri.scheme !== 'file') return undefined;
+    const st = await fs.promises.stat(this.uri.fsPath).catch(() => undefined);
+    if (!st || st.size !== head.size || st.mtimeMs !== head.mtimeMs) return undefined;
+    const segs = head.segs;
+    let total = 0;
+    for (let i = 0; i < segs.length; i += 3) total += segs[i + 2];
+    const out = Buffer.allocUnsafe(total);
+    const map: number[][] = [];
+    const fh = await fs.promises.open(this.uri.fsPath, 'r');
+    try {
+      let o = 0;
+      for (let i = 0; i < segs.length; i += 3) {
+        const [kind, off, len] = [segs[i], segs[i + 1], segs[i + 2]];
+        if (kind === 0) {
+          for (let got = 0; got < len; ) {
+            const { bytesRead } = await fh.read(out, o + got, len - got, off + got);
+            if (bytesRead <= 0) return undefined;
+            got += bytesRead;
+          }
+          map.push([o, o + len, off]);
+        } else lit.copy(out, o, off, off + len);
+        o += len;
+      }
+    } finally {
+      await fh.close();
+    }
+    return { bytes: out, map, stat: { size: st.size, mtimeMs: st.mtimeMs } };
   }
   private loading?: Promise<void>;
 
@@ -315,6 +448,7 @@ export class TableDocument implements vscode.CustomDocument {
       eol: this.eol === '\r\n' ? 'CRLF' : 'LF',
       readOnly: !!this.readOnlyReason || !this.loaded,
       readOnlyReason: this.readOnlyReason,
+      unlockable: !!this.sizeLock && this.loaded,
       dirty: this.dirty,
       warnings,
       query: this.query,
@@ -383,6 +517,9 @@ export class TableDocument implements vscode.CustomDocument {
       }
       case 'edit':
         await this.edit(msg.edit);
+        return;
+      case 'allowEdit':
+        await this.allowEditing();
         return;
       case 'copy':
         await vscode.env.clipboard.writeText(msg.text);
@@ -704,22 +841,109 @@ export class TableDocument implements vscode.CustomDocument {
   // ---------------------------------------------------------------------------------------------------------------
   // Save / revert / backup
 
-  serialize(): Uint8Array {
+  /** The file to write, as parts: BOM, then the serialized rows (UTF-16 is encoded in one piece). */
+  private outParts(): Buffer[] {
     const m = this.model;
     if (!(m instanceof CsvModel || m instanceof JsonlModel) || !this.rows) throw new Error('read-only');
-    return encodeOut(m.serialize(this.eol), this.rows.enc);
+    const enc = this.rows.enc;
+    const parts = m.serializeParts(this.eol);
+    if (enc.name === 'UTF-16 LE' || enc.name === 'UTF-16 BE') return [encodeOut(Buffer.concat(parts), enc)];
+    return enc.bom.length ? [Buffer.from(enc.bom), ...parts] : parts;
+  }
+
+  serialize(): Uint8Array {
+    return Buffer.concat(this.outParts());
   }
 
   async saveAs(target: vscode.Uri): Promise<void> {
     if (!this.editable) return;
-    const bytes = this.serialize();
+    const parts = this.outParts();
     if (target.scheme === 'file') {
-      await fs.promises.writeFile(target.fsPath, bytes);
+      await writeParts(target.fsPath, parts);
       if (target.toString() === this.uri.toString()) {
         const st = await fs.promises.stat(target.fsPath);
         this.ownWrite = this.lastStat = { size: st.size, mtimeMs: st.mtimeMs };
+        this.diskMap = this.mapParts(parts);
       }
-    } else await vscode.workspace.fs.writeFile(target, bytes);
+    } else await vscode.workspace.fs.writeFile(target, Buffer.concat(parts));
+  }
+
+  /** After writing `parts` to the file: where each unchanged run of the loaded bytes now is in it. */
+  private mapParts(parts: Buffer[]): number[][] | undefined {
+    const buf = this.rows?.buf;
+    if (!buf || this.rows?.enc.transcoded) return undefined;
+    const map: number[][] = [];
+    let off = 0;
+    for (const p of parts) {
+      if (isSliceOf(p, buf)) {
+        const s = p.byteOffset - buf.byteOffset;
+        map.push([s, s + p.length, off]);
+      }
+      off += p.length;
+    }
+    map.sort((a, b) => a[0] - b[0]);
+    const merged: number[][] = [];
+    for (const m of map) {
+      const last = merged[merged.length - 1];
+      if (last && last[1] === m[0] && last[2] + (last[1] - last[0]) === m[2]) last[1] = m[1];
+      else merged.push(m);
+    }
+    return merged;
+  }
+
+  /**
+   * A backup of a large file that stores only what changed: unchanged runs are referenced by their offset in the file on
+   * disk. VS Code backs up dirty documents about a second after every edit, which would otherwise copy the whole file.
+   */
+  private async patchBackup(): Promise<Buffer | undefined> {
+    const r = this.rows;
+    const map = this.diskMap;
+    if (!r || !map?.length || !this.lastStat || this.uri.scheme !== 'file' || r.size < LIMITS.patchMin) return undefined;
+    const st = await fs.promises.stat(this.uri.fsPath).catch(() => undefined);
+    if (!st || st.size !== this.lastStat.size || st.mtimeMs !== this.lastStat.mtimeMs) return undefined;
+    const segs: number[] = [];
+    const lits: Buffer[] = [];
+    let litLen = 0;
+    const push = (kind: number, off: number, len: number) => {
+      const n = segs.length;
+      if (n && segs[n - 3] === kind && segs[n - 2] + segs[n - 1] === off) segs[n - 1] += len;
+      else segs.push(kind, off, len);
+    };
+    const literal = (b: Buffer) => {
+      if (!b.length) return;
+      push(1, litLen, b.length);
+      lits.push(b);
+      litLen += b.length;
+    };
+    for (const p of this.outParts()) {
+      if (!isSliceOf(p, r.buf)) {
+        literal(p);
+        continue;
+      }
+      let s = p.byteOffset - r.buf.byteOffset;
+      const e = s + p.length;
+      while (s < e) {
+        // the last map entry starting at or before s
+        let lo = 0;
+        let hi = map.length - 1;
+        let at = -1;
+        while (lo <= hi) {
+          const mid = (lo + hi) >> 1;
+          if (map[mid][0] <= s) [at, lo] = [mid, mid + 1];
+          else hi = mid - 1;
+        }
+        if (at >= 0 && s < map[at][1]) {
+          const n = Math.min(e, map[at][1]) - s;
+          push(0, map[at][2] + (s - map[at][0]), n);
+          s += n;
+        } else {
+          const end = Math.min(e, at + 1 < map.length ? map[at + 1][0] : e);
+          literal(r.buf.subarray(s, end));
+          s = end;
+        }
+      }
+    }
+    return Buffer.concat([PATCH_MAGIC, Buffer.from(JSON.stringify({ size: st.size, mtimeMs: st.mtimeMs, segs }) + '\n'), ...lits]);
   }
 
   async save(): Promise<void> {
@@ -741,7 +965,7 @@ export class TableDocument implements vscode.CustomDocument {
   }
 
   async backup(dest: vscode.Uri): Promise<vscode.CustomDocumentBackup> {
-    await vscode.workspace.fs.writeFile(dest, this.serialize());
+    await vscode.workspace.fs.writeFile(dest, (await this.patchBackup()) ?? this.serialize());
     backupUris.set(dest.toString(), dest);
     return {
       id: dest.toString(),

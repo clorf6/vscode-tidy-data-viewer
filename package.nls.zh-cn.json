@@ -14,7 +14,7 @@
   "command.table.exportAs": "导出表格为…",
   "config.title": "数据查看器",
   "config.openAsTextPatterns": "即使扩展名受支持，也始终以纯文本打开的文件（通常当作代码编辑的配置文件），使用 glob 模式。VS Code 自身的设置文件始终以文本打开。",
-  "config.table.maxEditableMB": "超过此大小（MB）的表格以只读流式方式打开，保证超大文件依然流畅。",
+  "config.table.maxEditableMB": "超过此大小（MB）的表格先以只读方式打开；点提示条或状态栏「只读」上的「允许编辑」即可修改。",
   "config.table.delimiter": "分隔符文本文件使用的分隔符。`auto` 根据文件名和内容自动判断。",
   "config.table.wrapCells": "单元格内容过长时换行显示，而不是截断。",
   "config.table.rowHeight": "表格行的疏密程度。",

@@ -178,5 +178,10 @@
   "{0} matching lines of {1}": "{1} 行中有 {0} 行匹配",
   "{0} of {1}": "{0} / {1}",
   "{0} rows have a different number of fields": "{0} 行的字段数与表头不一致",
-  "Table diagnostics copied to the clipboard — please paste them to the developer.": "表格诊断信息已复制到剪贴板，请粘贴给开发者。"
+  "Table diagnostics copied to the clipboard — please paste them to the developer.": "表格诊断信息已复制到剪贴板，请粘贴给开发者。",
+  "Allow editing": "允许编辑",
+  "Click to allow editing": "点击允许编辑",
+  "Load and Edit": "载入并编辑",
+  "To edit {0}, the whole file ({1}) is loaded into memory. Continue?": "要编辑 {0}，需要把整个文件（{1}）载入内存。继续吗？",
+  "The unsaved changes to {0} could not be restored: the file has changed on disk since.": "无法恢复 {0} 未保存的修改：此后磁盘上的文件已被更改。"
 }

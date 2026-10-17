@@ -14,7 +14,7 @@
   "command.table.exportAs": "Export Table As…",
   "config.title": "Data Viewer",
   "config.openAsTextPatterns": "Glob patterns of files that always open as plain text even though Data Viewer handles their extension (config files you usually edit as code). VS Code settings files always open as text.",
-  "config.table.maxEditableMB": "Tables larger than this (MB) open read-only with streaming, so huge files stay fast.",
+  "config.table.maxEditableMB": "Tables larger than this (MB) open read-only at first; \"Allow editing\" in the banner or on the status bar's Read-only tag makes them editable.",
   "config.table.delimiter": "Delimiter for delimited text files. `auto` detects it from the file name and content.",
   "config.table.wrapCells": "Wrap long cell text instead of truncating it.",
   "config.table.rowHeight": "Row density of tables.",

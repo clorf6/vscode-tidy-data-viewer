@@ -1,5 +1,15 @@
 # 更新日志 / Changelog
 
+## 0.2.0
+
+- 大文件也能编辑：超过 `maxEditableMB` 而只读打开的 CSV / TSV / JSONL，点提示条或状态栏「只读」上的「允许编辑」即可修改；超过 512 MB（按需从磁盘读取）的文件会先确认，再整个载入内存。保存时分段直接写盘，不再在内存里拼出整份文件；崩溃恢复备份只记录改动及其在原文件中的位置（300 MB 的文件约 2 KB），不再每次编辑都复制整个文件。
+- 颜色取色器：树视图和美化文本中颜色值前的色块可点击，打开带饱和度 / 亮度面板、色相和不透明度滑块、HEX / RGB / HSL 切换和屏幕取色的取色器；写回时保持原来的写法。色块现在也能看出透明度。
+
+---
+
+- Large files can be edited: "Allow editing" on files opened read-only because of their size (streamed files over 512 MB are loaded into memory after a confirmation). Saves stream to disk, and backups store only the changes.
+- Colour picker: click a colour swatch in the tree or pretty text to pick a colour (saturation/brightness, hue, opacity, HEX/RGB/HSL, eyedropper); the value keeps its notation.
+
 ## 0.1.9
 
 - 整理“行高亮 / 选中文字 / 编辑”为同一套规则：当前行只用淡底色和左侧色条标出（表格当前单元格只有边框），选中的文字始终是唯一醒目的颜色，不再在选择文字时临时隐藏行高亮；编辑框就地出现在原文字的位置，双击的词保持选中；状态栏在同一位置显示选中文字的字符数 / 行数、正在编辑内容的长度（随输入更新）或当前值的长度，表格为「列 · 第 n 行 · …」。

@@ -131,6 +131,13 @@ function keyEl(row: Row, ctx: Ctx): HTMLElement | null {
   }
 }
 
+/** Colour swatch in front of a colour value; a click opens the colour picker (tree.ts). */
+function swatch(color: string): HTMLElement {
+  const sw = h('span', { class: 'sw', 'data-color': '1', title: t('Pick color') });
+  sw.style.setProperty('--sw', color);
+  return sw;
+}
+
 /** Value element with hints (link, colour swatch, timestamp). */
 export function valueEl(row: Pick<Row, 't' | 'v' | 'tr' | 'k' | 'id' | 'alias'>, ctx: Ctx, quoted = true): HTMLElement {
   const v = row.v ?? '';
@@ -138,11 +145,7 @@ export function valueEl(row: Pick<Row, 't' | 'v' | 'tr' | 'k' | 'id' | 'alias'>,
   switch (row.t) {
     case Kind.Str: {
       const color = colorOf(v);
-      if (color) {
-        const sw = h('span', { class: 'sw' });
-        sw.style.background = color;
-        wrap.append(sw);
-      }
+      if (color) wrap.append(swatch(color));
       const url = isUrl(v);
       const s = markControls(hl(visible(v), ctx.re, 'v-str' + (url ? ' link' : '') + (quoted ? ' q' : '')), v);
       if (url) {
@@ -385,11 +388,7 @@ function prettyValue(row: Row, ctx: Ctx, syntax: Syntax, out: Node[]): void {
       s.title = t('Ctrl+Click to open');
     }
     const color = colorOf(v);
-    if (color) {
-      const sw = h('span', { class: 'sw' });
-      sw.style.background = color;
-      out.push(sw);
-    }
+    if (color) out.push(swatch(color));
     out.push(s);
     if (row.tr) out.push(h('button', { class: 'more', 'data-full': String(row.id), title: t('Show full value') }, t('+{0} chars', nf.format(row.tr - v.length))));
     return;

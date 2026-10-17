@@ -6,6 +6,7 @@ import type { EditOp, HostMsg, Mode, PathStyle, Row, SearchQuery, Status, Syntax
 import { VList } from './tree/vlist';
 import { Ctx, IND, TABLES, renderIni, renderPlaceholder, renderPretty, renderTableHead, renderTree, tableWidth } from './tree/rows';
 import { closeMenu, closePop, MenuItem, popOpen, showMenu, showPop, toast } from './tree/ui';
+import { openColorPicker } from './tree/color';
 import { copySelection, locate, measure, onSelectionChange, rowText, selectAt, selectedIn, selectionIn, serialize, SerializeOpts } from './shared/selection';
 
 const send = (m: WebMsg) => post(m);
@@ -496,6 +497,11 @@ function onClick(e: MouseEvent): void {
   const { r, row, target } = hit(e, at);
   if (!row) return;
   const mod = e.ctrlKey || e.metaKey;
+  const sw = target.closest<HTMLElement>('.sw[data-color]');
+  if (sw) {
+    if (r !== S.sel) select(r, 'none');
+    return void pickColor(row, sw);
+  }
   const btn = target.closest<HTMLElement>('button,[data-url],[data-alias],.tw.can,.ft.can,.hc');
   if (btn) {
     if (btn.dataset.full) return void showFull(Number(btn.dataset.full), btn);
@@ -513,6 +519,20 @@ function onClick(e: MouseEvent): void {
   }
   if (r !== S.sel) select(r, 'none');
   vl.el.focus({ preventScroll: true });
+}
+
+/** The colour picker for the colour value whose swatch was clicked (a value, or a cell of an object-array table). */
+function pickColor(row: Row, sw: HTMLElement): void {
+  const cellEl = sw.closest<HTMLElement>('.c[data-id]');
+  const cell = cellEl ? row.cells?.find((x) => x?.id === Number(cellEl.dataset.id)) : undefined;
+  const id = cell ? cell.id : row.id;
+  const value = (cell ? cell.v : row.v) ?? '';
+  const editable = canEditRow(row) && !S.status?.readOnly;
+  openColorPicker(sw, value, {
+    readOnly: !editable,
+    apply: (v) => doEdit({ op: 'set', id, value: v, type: 'string' }),
+    copy: (v) => (copyText(v), toast(t('Copied'))),
+  });
 }
 
 /** Time of the last chevron toggle: a double-click on a chevron is two toggles already, not a third. */
