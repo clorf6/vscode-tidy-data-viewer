@@ -317,7 +317,21 @@ body {
   user-select: text;
 }
 .vl ::selection {
-  background: var(--vscode-editor-selectionBackground, Highlight);
+  background: var(--dv-textsel);
+}
+body.vscode-high-contrast .vl ::selection,
+body.vscode-high-contrast-light .vl ::selection {
+  color: var(--vscode-editor-selectionForeground, inherit);
+}
+/* While text is selected the selected row drops its colour, so the selected characters are what stands out. */
+.vl.tv-textsel .row.sel,
+.vl.tv-textsel.tv-focus .row.sel,
+.vl.tv-textsel.tv-focus .row.hit.sel,
+.vl.tv-textsel .row.pl.sel,
+.vl.tv-textsel.tv-focus .row.pl.sel {
+  background: transparent;
+  outline: none;
+  box-shadow: none;
 }
 .row.sel {
   background: var(--dv-selected);

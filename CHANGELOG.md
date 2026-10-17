@@ -1,5 +1,13 @@
 # 更新日志 / Changelog
 
+## 0.1.7
+
+- 选中文字时更清楚：选中部分使用编辑器的选区颜色，所在行 / 单元格暂时去掉选中底色（行号、当前单元格边框仍会标出位置），浅色主题下不再被接近白色的行高亮盖住。
+
+---
+
+- Selected text uses the editor's selection colour, and the selected row/cell drops its own highlight while text is selected, so the selected characters are clearly visible.
+
 ## 0.1.6
 
 - 树视图、美化文本、INI / .env 和日志中的文字可以直接拖动选择、部分选择并复制，不必先选中行再双击进入编辑；双击选词、三击选整格 / 整行（只在当前单元格或值内，不会连到旁边的格子），右键菜单新增「复制所选文字」。

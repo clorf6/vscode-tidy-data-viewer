@@ -5,7 +5,7 @@ import { h, icon } from '../shared/vscode';
 import type { ColType, RowData } from '../../src/table/protocol';
 import { Heights } from './cache';
 import { renderLogLine, setHighlighted } from './render';
-import { copySelection, locate, restoreSelection, saveSelection, selectAt, selectedIn, selectionIn, serialize, SerializeOpts } from '../shared/selection';
+import { copySelection, locate, onSelectionChange, restoreSelection, saveSelection, selectAt, selectedIn, selectionIn, serialize, SerializeOpts } from '../shared/selection';
 
 /** Selection points are kept per cell: key = row * CELL_KEY + column + 1 (0 = the row element itself). */
 const CELL_KEY = 65536;
@@ -156,6 +156,8 @@ export class Grid {
     this.root.addEventListener('keydown', (e) => this.onKey(e));
     new ResizeObserver(() => this.measureView()).observe(this.scroller);
     copySelection(this.rowsEl, () => this.copyOpts());
+    // while text is selected, selected rows / cells drop their colour (table.css) so the selected characters stand out
+    onSelectionChange(() => this.root.classList.toggle('tg-textsel', !!selectionIn(this.rowsEl)));
   }
 
   // ------------------------------------------------------------------------------------------------------------

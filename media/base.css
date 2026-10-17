@@ -14,6 +14,8 @@
   --dv-selected: var(--vscode-list-inactiveSelectionBackground, color-mix(in srgb, var(--dv-accent) 18%, transparent));
   --dv-selected-strong: var(--vscode-list-activeSelectionBackground, color-mix(in srgb, var(--dv-accent) 30%, transparent));
   --dv-selected-fg: var(--vscode-list-activeSelectionForeground, var(--dv-fg));
+  /* selected text (as in the editor), distinct from a selected row */
+  --dv-textsel: var(--vscode-editor-selectionBackground, color-mix(in srgb, var(--dv-accent) 45%, transparent));
   --dv-accent: var(--vscode-focusBorder, #3794ff);
   --dv-link: var(--vscode-textLink-foreground, var(--dv-accent));
   --dv-warn: var(--vscode-editorWarning-foreground, #cca700);

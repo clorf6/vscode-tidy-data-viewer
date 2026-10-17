@@ -295,6 +295,7 @@ const selInfo = h('span', { class: 'tv-selinfo' });
 function updateSelInfo(): void {
   let text = '';
   const r = vl && selectionIn(vl.el);
+  vl?.el.classList.toggle('tv-textsel', !!r);
   if (r) text = selectionLabel(serialize(r, copyOpts()));
   else {
     const sel = getSelection();

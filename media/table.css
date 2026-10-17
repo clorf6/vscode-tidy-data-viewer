@@ -532,7 +532,11 @@
   user-select: none;
 }
 .tg ::selection {
-  background: var(--vscode-editor-selectionBackground, Highlight);
+  background: var(--dv-textsel);
+}
+body.vscode-high-contrast .tg ::selection,
+body.vscode-high-contrast-light .tg ::selection {
+  color: var(--vscode-editor-selectionForeground, inherit);
 }
 .tg-row {
   --row-bg: var(--dv-bg);
@@ -792,6 +796,30 @@
 .tg-log .tg-row.lv5.sel,
 .tg-log .tg-row.lv4.sel {
   --row-bg: var(--tg-sel-row);
+}
+/* While text is selected the selected line / cell drops its colour (the active cell keeps its outline, the gutter its
+   highlight), so the selected characters are what stands out. */
+.tg-textsel .tg-row.act,
+.tg-textsel .tg-row.sel {
+  --row-bg: var(--dv-bg);
+}
+.tg-textsel:not(.tg-log) .tg-row.odd.act,
+.tg-textsel:not(.tg-log) .tg-row.odd.sel {
+  --row-bg: var(--tg-zebra);
+}
+.tg-textsel.tg-log .tg-row.lv5.sel,
+.tg-textsel.tg-log .tg-row.lv6.sel,
+.tg-textsel.tg-log .tg-row.lv5.act,
+.tg-textsel.tg-log .tg-row.lv6.act {
+  --row-bg: var(--tg-err-row);
+}
+.tg-textsel.tg-log .tg-row.lv4.sel,
+.tg-textsel.tg-log .tg-row.lv4.act {
+  --row-bg: var(--tg-warn-row);
+}
+.tg-textsel .tg-c.sel,
+.tg-textsel .tg-c.pin.sel {
+  background: var(--row-bg);
 }
 .lg-ts {
   color: var(--dv-muted);
