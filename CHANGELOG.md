@@ -1,5 +1,13 @@
 # 更新日志 / Changelog
 
+## 0.1.8
+
+- 选中文字的高亮改用主题的强调色（通常是蓝色），不再用编辑器选区色——不少主题把它设成接近灰色，和行的悬停 / 选中底色几乎一样；选择文字时鼠标所在行也不再显示悬停底色。
+
+---
+
+- Selected text is highlighted in the theme's accent colour (many themes make editor.selectionBackground a grey close to the row hover colour), and rows drop their hover colour while text is selected.
+
 ## 0.1.7
 
 - 选中文字时更清楚：选中部分使用编辑器的选区颜色，所在行 / 单元格暂时去掉选中底色（行号、当前单元格边框仍会标出位置），浅色主题下不再被接近白色的行高亮盖住。

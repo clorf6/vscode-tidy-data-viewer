@@ -316,23 +316,6 @@ body {
 .vl .row .pind {
   user-select: text;
 }
-.vl ::selection {
-  background: var(--dv-textsel);
-}
-body.vscode-high-contrast .vl ::selection,
-body.vscode-high-contrast-light .vl ::selection {
-  color: var(--vscode-editor-selectionForeground, inherit);
-}
-/* While text is selected the selected row drops its colour, so the selected characters are what stands out. */
-.vl.tv-textsel .row.sel,
-.vl.tv-textsel.tv-focus .row.sel,
-.vl.tv-textsel.tv-focus .row.hit.sel,
-.vl.tv-textsel .row.pl.sel,
-.vl.tv-textsel.tv-focus .row.pl.sel {
-  background: transparent;
-  outline: none;
-  box-shadow: none;
-}
 .row.sel {
   background: var(--dv-selected);
 }
@@ -1196,4 +1179,43 @@ body.vscode-high-contrast .cnt,
 body.vscode-high-contrast .more,
 body.vscode-high-contrast .chip-tb {
   border-color: var(--vscode-contrastBorder, var(--dv-border));
+}
+
+/* ---------- text selection ---------- */
+.vl ::selection {
+  background: var(--dv-textsel);
+}
+body.vscode-high-contrast .vl ::selection,
+body.vscode-high-contrast-light .vl ::selection {
+  background: var(--vscode-editor-selectionBackground, var(--dv-accent));
+  color: var(--vscode-editor-selectionForeground, inherit);
+}
+/* While text is selected, rows drop their selection and hover colours, so the selected characters are what stands
+   out (the line number of the selected row stays highlighted). Last in the file: these win over the row rules. */
+.vl.tv-textsel .row.sel,
+.vl.tv-textsel.tv-focus .row.sel,
+.vl.tv-textsel.tv-focus .row.hit.sel,
+.vl.tv-textsel .row.pl.sel,
+.vl.tv-textsel.tv-focus .row.pl.sel,
+.vl.tv-textsel .row.td.sel,
+.vl.tv-textsel.tv-focus .row.td.sel {
+  background: transparent;
+  outline: none;
+  box-shadow: none;
+}
+.vl.tv-textsel .row:hover,
+.vl.tv-textsel .row.pl:hover,
+.vl.tv-textsel .row.td:hover {
+  background: transparent;
+}
+.vl.tv-textsel .row.td.odd.sel,
+.vl.tv-textsel.tv-focus .row.td.odd.sel,
+.vl.tv-textsel .row.td.odd:hover {
+  background: var(--tv-zebra);
+}
+.vl.tv-textsel .row.hit:hover {
+  background: var(--tv-hit-row);
+}
+.vl.tv-textsel .row.th:hover {
+  background: var(--dv-subtle);
 }
